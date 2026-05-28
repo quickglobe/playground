@@ -684,10 +684,9 @@ navigator.geolocation.getCurrentPosition(
     tick();
   },
   () => {
-    // Aberdeen, Scotland fallback
-    lat = 57.15; lon = -2.11;
-    document.getElementById('location-display').textContent = 'Aberdeen, Scotland';
-    document.getElementById('location-notice').textContent = 'Aberdeen, Scotland';
+    lat = 51.4779; lon = -0.0015;
+    document.getElementById('location-display').textContent = 'Greenwich, London (default)';
+    document.getElementById('location-notice').textContent = 'Location unavailable — showing Greenwich, London';
     lastDateStr = null;
     tick();
   },
