@@ -1,104 +1,184 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="auto">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+  :root {
+    --bg: oklch(0.96 0.02 220);
+    --text: oklch(0.26 0.04 255);
+    --muted: oklch(0.5 0.04 250);
+    --card-brd: oklch(0.26 0.04 255);
+    --surface: oklch(1 0 0);
+    --teal: oklch(0.72 0.13 195);
+    --teal-soft: oklch(0.9 0.07 195);
+    --blue: oklch(0.66 0.14 255);
+    --blue-soft: oklch(0.89 0.06 255);
+    --shadow-col: oklch(0.26 0.04 255);
+    color-scheme: light;
+  }
+  html[data-theme="dark"] {
+    --bg: oklch(0.2 0.03 255);
+    --text: oklch(0.95 0.015 220);
+    --muted: oklch(0.72 0.03 245);
+    --card-brd: oklch(0.85 0.05 230);
+    --surface: oklch(0.26 0.035 255);
+    --teal: oklch(0.78 0.13 195);
+    --teal-soft: oklch(0.4 0.08 195);
+    --blue: oklch(0.74 0.14 255);
+    --blue-soft: oklch(0.38 0.09 255);
+    --shadow-col: oklch(0.08 0.02 255);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    html[data-theme="auto"] {
+      --bg: oklch(0.2 0.03 255); --text: oklch(0.95 0.015 220); --muted: oklch(0.72 0.03 245);
+      --card-brd: oklch(0.85 0.05 230); --surface: oklch(0.26 0.035 255);
+      --teal: oklch(0.78 0.13 195); --teal-soft: oklch(0.4 0.08 195);
+      --blue: oklch(0.74 0.14 255); --blue-soft: oklch(0.38 0.09 255); --shadow-col: oklch(0.08 0.02 255);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: #0d0d18;
-    color: #c8c0d8;
-    font-family: system-ui, -apple-system, sans-serif;
-    min-height: 100vh;
-    padding: 3rem 1.5rem;
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    transition: background 0.5s, color 0.5s;
   }
+  .blobs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .blob { position: absolute; border-radius: 42% 58% 60% 40% / 45% 45% 55% 55%; opacity: 0.5; filter: blur(2px); }
+  .b1 { width: 240px; height: 240px; background: var(--teal-soft); top: 12%; right: -60px; animation: float 14s ease-in-out infinite; }
+  .b2 { width: 180px; height: 180px; background: var(--blue-soft); bottom: 8%; left: -50px; animation: float 18s ease-in-out infinite reverse; }
+  .b3 { width: 120px; height: 120px; background: var(--teal-soft); top: 60%; right: 14%; animation: float 11s ease-in-out infinite; }
+  @keyframes float { 0%,100%{ transform: translateY(0) rotate(0); } 50%{ transform: translateY(-26px) rotate(18deg); } }
 
-  header {
-    max-width: 720px;
-    margin: 0 auto 3rem;
-  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: clamp(28px,6vw,64px) clamp(20px,5vw,40px) 80px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: clamp(36px,7vw,64px); }
+  .brand { flex: 1; min-width: 0; }
+  .brand h1 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(38px,8vw,64px); letter-spacing: -0.02em; line-height: 1.0; }
+  .brand h1 .pop { display: inline-block; color: var(--teal); animation: wiggle 3s ease-in-out infinite; transform-origin: bottom; }
+  @keyframes wiggle { 0%,92%,100%{ transform: rotate(0); } 95%{ transform: rotate(-9deg); } 98%{ transform: rotate(7deg); } }
+  .brand p { font-size: clamp(15px,2.5vw,18px); color: var(--muted); margin-top: 16px; font-weight: 500; }
 
-  header h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #e8e0f0;
-    letter-spacing: -0.02em;
+  .toggle {
+    flex-shrink: 0; width: 60px; height: 60px; border-radius: 20px; cursor: pointer;
+    background: var(--surface); border: 3px solid var(--card-brd); box-shadow: 4px 4px 0 var(--shadow-col);
+    display: grid; place-items: center; color: var(--text); transition: transform 0.18s, box-shadow 0.18s;
   }
+  .toggle:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--shadow-col); }
+  .toggle:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--shadow-col); }
+  .toggle .disc { width: 22px; height: 22px; border-radius: 50%; background: var(--text); transition: box-shadow 0.4s, background 0.4s; }
+  html[data-theme="dark"] .toggle .disc { background: transparent; box-shadow: inset -8px -2px 0 0 var(--text); }
+  @media (prefers-color-scheme: dark) { html[data-theme="auto"] .toggle .disc { background: transparent; box-shadow: inset -8px -2px 0 0 var(--text); } }
 
-  header p {
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-    color: #6a6080;
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: clamp(20px,3.5vw,30px); }
+  .card {
+    text-decoration: none; color: inherit; background: var(--surface);
+    border: 3px solid var(--card-brd); border-radius: 26px; padding: 14px;
+    box-shadow: 6px 6px 0 var(--shadow-col); position: relative;
+    transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s;
   }
+  .card:hover { transform: translate(-4px,-4px) rotate(-0.6deg); box-shadow: 12px 12px 0 var(--shadow-col); }
+  .card:active { transform: translate(2px,2px); box-shadow: 3px 3px 0 var(--shadow-col); }
+  .card:focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
+  .preview { height: 172px; border-radius: 18px; overflow: hidden; position: relative; border: 3px solid var(--card-brd); }
+  .meta { padding: 16px 8px 8px; }
+  .chip { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 11px; border-radius: 999px; border: 2px solid var(--card-brd); }
+  .c-teal { background: var(--teal-soft); color: var(--text); }
+  .c-blue { background: var(--blue-soft); color: var(--text); }
+  .meta h2 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 24px; margin: 12px 0 6px; letter-spacing: -0.01em; }
+  .meta p { color: var(--muted); font-size: 14.5px; line-height: 1.5; font-weight: 500; }
 
-  .grid {
-    max-width: 720px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-  }
+  /* sun preview */
+  .sun-scene { width: 100%; height: 100%; background: linear-gradient(180deg, oklch(0.85 0.1 230), oklch(0.93 0.05 210)); position: relative; }
+  html[data-theme="dark"] .sun-scene { background: linear-gradient(180deg, oklch(0.3 0.06 265), oklch(0.42 0.07 250)); }
+  @media (prefers-color-scheme: dark) { html[data-theme="auto"] .sun-scene { background: linear-gradient(180deg, oklch(0.3 0.06 265), oklch(0.42 0.07 250)); } }
+  .sun-scene .arc path { fill: none; stroke: oklch(1 0 0 / 0.5); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
+  .sun-body { position: absolute; width: 30px; height: 30px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, oklch(0.97 0.1 92), oklch(0.83 0.17 68));
+    box-shadow: 0 0 20px 5px oklch(0.86 0.16 75 / 0.8);
+    offset-path: path('M 18 152 A 124 116 0 0 1 262 152'); animation: travel 7s ease-in-out infinite alternate; }
+  @keyframes travel { from{ offset-distance: 2%; } to{ offset-distance: 98%; } }
+  .horizon { position: absolute; left:0; right:0; bottom:0; height: 38px; background: linear-gradient(180deg, transparent, oklch(0.5 0.1 165 / 0.6)); }
 
-  a.card {
-    display: block;
-    background: #16131f;
-    border: 1px solid #2a2440;
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color 0.15s, background 0.15s;
-  }
+  /* life preview */
+  .life-scene { width: 100%; height: 100%; display: block; background: oklch(0.17 0.03 255); }
 
-  a.card:hover {
-    border-color: #6040c0;
-    background: #1c1830;
-  }
-
-  .card-icon {
-    font-size: 2rem;
-    line-height: 1;
-    margin-bottom: 1rem;
-  }
-
-  .card h2 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #e8e0f0;
-    margin-bottom: 0.4rem;
-  }
-
-  .card p {
-    font-size: 0.85rem;
-    color: #6a6080;
-    line-height: 1.5;
-  }
+  footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+  footer a { color: var(--text); text-decoration: none; padding: 6px 12px; border: 2px solid var(--card-brd); border-radius: 999px; background: var(--surface); box-shadow: 3px 3px 0 var(--shadow-col); transition: transform 0.15s, box-shadow 0.15s; }
+  footer a:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow-col); }
 </style>
 </head>
 <body>
+<div class="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Play<span class="pop">ground</span></h1>
+      <p>Fun experiments &amp; side projects.</p>
+    </div>
+    <button class="toggle" id="themeBtn" aria-label="Toggle dark mode" title="Toggle theme"><span class="disc"></span></button>
+  </header>
 
-<header>
-  <h1>Playground</h1>
-  <p>Small experiments and one-off projects.</p>
-</header>
+  <main class="grid" id="grid"></main>
 
-<div class="grid">
-
-  <a class="card" href="sun-tracker/">
-    <div class="card-icon">☀️</div>
-    <h2>Sun Tracker</h2>
-    <p>Displays sunrise, sunset, and solar noon for your location, with an animated arc showing the sun's current position.</p>
-  </a>
-
-  <a class="card" href="game-of-life/">
-    <div class="card-icon">🔲</div>
-    <h2>Game of Life</h2>
-    <p>Conway's Game of Life simulation with pan, zoom, adjustable speed, and touch support for drawing cells.</p>
-  </a>
-
+  <footer><span>Made for the joy of it</span><a href="https://github.com/quickglobe/playground" target="_blank" rel="noopener">GitHub ↗</a></footer>
 </div>
 
+<script>
+  /* ADD A PROJECT: append here. chip: 'c-teal' | 'c-blue'. preview: 'sun' | 'life' */
+  const PROJECTS = [
+    { title: "Sun Tracker", tag: "Astronomy", chip: "c-blue", desc: "Real-time solar position, sunrise & sunset for any spot on Earth.", url: "sun-tracker/", preview: "sun" },
+    { title: "Game of Life", tag: "Simulation", chip: "c-teal", desc: "Conway's cellular automaton — watch tiny worlds bloom and die.", url: "game-of-life/", preview: "life" },
+  ];
+
+  function previewHTML(kind) {
+    if (kind === "sun") return `<div class="sun-scene"><svg class="arc" viewBox="0 0 280 172" preserveAspectRatio="none"><path d="M 18 152 A 124 116 0 0 1 262 152"/></svg><div class="sun-body"></div><div class="horizon"></div></div>`;
+    if (kind === "life") return `<canvas class="life-scene"></canvas>`;
+    return `<div style="width:100%;height:100%"></div>`;
+  }
+  const grid = document.getElementById("grid");
+  PROJECTS.forEach(p => {
+    const a = document.createElement("a"); a.className = "card"; a.href = p.url;
+    a.innerHTML = `<div class="preview">${previewHTML(p.preview)}</div>
+      <div class="meta"><span class="chip ${p.chip}">${p.tag}</span><h2>${p.title}</h2><p>${p.desc}</p></div>`;
+    grid.appendChild(a);
+  });
+
+  function startLife(canvas) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    canvas.width = W*dpr; canvas.height = H*dpr;
+    const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
+    const cell = 12, cols = Math.ceil(W/cell), rows = Math.ceil(H/cell);
+    let grid = seed();
+    function seed(){ return Array.from({length:rows},()=>Array.from({length:cols},()=>Math.random()>0.72?1:0)); }
+    function step(){
+      let alive = 0;
+      const next = grid.map((row,y)=>row.map((s,x)=>{ let n=0;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ if(dx||dy) n+=grid[(y+dy+rows)%rows][(x+dx+cols)%cols]; }
+        const v=(n===3||(s&&n===2))?1:0; alive+=v; return v; }));
+      grid = next; if (alive < cols*rows*0.04) grid = seed();
+      const c = getComputedStyle(document.documentElement).getPropertyValue("--teal").trim() || "#5ec8c8";
+      ctx.clearRect(0,0,W,H); ctx.fillStyle = c;
+      for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.beginPath(); ctx.roundRect(x*cell+1.5, y*cell+1.5, cell-3, cell-3, 3); ctx.fill(); }
+    }
+    step(); setInterval(step, 380);
+  }
+  document.querySelectorAll(".life-scene").forEach(startLife);
+
+  const root = document.documentElement, btn = document.getElementById("themeBtn");
+  const saved = localStorage.getItem("pg-theme"); if (saved) root.setAttribute("data-theme", saved);
+  btn.addEventListener("click", () => {
+    const order = ["auto","light","dark"], cur = root.getAttribute("data-theme") || "auto";
+    const next = order[(order.indexOf(cur)+1)%order.length];
+    root.setAttribute("data-theme", next); localStorage.setItem("pg-theme", next);
+  });
+</script>
 </body>
 </html>
