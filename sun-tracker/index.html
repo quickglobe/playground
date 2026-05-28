@@ -4,123 +4,238 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Sun Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body {
-    height: 100%;
-    overflow: hidden;
-  }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+}
 
-  body {
-    background: #07080f;
-    color: #d8d0c4;
-    font-family: system-ui, -apple-system, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    height: 100dvh;
-    gap: clamp(0.6rem, 2.2vh, 1.5rem);
-    padding: 1.25rem;
-    overflow: hidden;
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
+body {
+  background: #070710;
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.005em;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
 
-  #time-display { text-align: center; line-height: 1; }
+/* ── Root ─────────────────────────────────────────────── */
+#root {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
 
-  #clock {
-    font-size: clamp(2rem, 8vw, 3.2rem);
-    font-weight: 200;
-    letter-spacing: 0.04em;
-    font-variant-numeric: tabular-nums;
-    color: #ede5d4;
-  }
+/* ── Canvas (full-bleed sky) ──────────────────────────── */
+#sky {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
 
-  #date {
-    font-size: clamp(0.65rem, 2vw, 0.82rem);
-    color: #4a4a4a;
-    margin-top: 0.45rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
+/* ── Overlay ──────────────────────────────────────────── */
+#overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: clamp(18px, 4vw, 28px) clamp(20px, 5vw, 32px) clamp(20px, 4vw, 28px);
+  pointer-events: none;
+}
 
-  #canvas-wrap {
-    width: 100%;
-    max-width: 520px;
-  }
+/* ── Top row: clock + date ────────────────────────────── */
+#top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
 
-  canvas {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 12px;
-  }
+#clock {
+  font-size: clamp(16px, 4vw, 20px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  transition: color 1.2s ease;
+}
 
-  #sun-times {
-    display: flex;
-    gap: clamp(2rem, 8vw, 3.5rem);
-    text-align: center;
-  }
+#date {
+  font-size: clamp(10px, 2.5vw, 12px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  transition: color 1.2s ease;
+}
 
-  .sun-event label {
-    display: block;
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: #444;
-    margin-bottom: 0.4rem;
-  }
+/* ── Hero: Daylight today ─────────────────────────────── */
+#hero {
+  align-self: start;
+  margin-top: clamp(14px, 3vh, 22px);
+}
 
-  .sun-event time {
-    font-size: clamp(1rem, 4vw, 1.3rem);
-    font-weight: 300;
-    font-variant-numeric: tabular-nums;
-    color: #b0a898;
-  }
+#hero-label {
+  font-size: clamp(9px, 2vw, 11px);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: clamp(4px, 1vh, 8px);
+  transition: color 1.2s ease;
+}
 
-  #location {
-    font-size: 0.67rem;
-    color: #383838;
-    letter-spacing: 0.08em;
-  }
+#hero-num {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+}
+
+.hero-h, .hero-m {
+  font-size: clamp(52px, 16vw, 80px);
+  font-variant-numeric: tabular-nums;
+  transition: color 1.2s ease;
+}
+
+.hero-unit {
+  font-size: clamp(16px, 5vw, 24px);
+  font-weight: 400;
+  margin-right: clamp(5px, 1.5vw, 10px);
+  transition: color 1.2s ease;
+}
+
+/* ── Bottom stats ─────────────────────────────────────── */
+#bottom {
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2.5vh, 16px);
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: end;
+}
+
+.stat-row + .stat-row {
+  padding-top: clamp(10px, 2.5vh, 16px);
+  border-top: 1px solid;
+}
+
+.stat-cell { }
+.stat-cell-mid { text-align: center; }
+.stat-cell-end { text-align: right; }
+
+.stat-label {
+  font-size: clamp(8px, 2vw, 10px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  transition: color 1.2s ease;
+}
+
+.stat-val {
+  font-size: clamp(17px, 4.5vw, 22px);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 3px;
+  transition: color 1.2s ease;
+}
+
+.stat-val-sm {
+  font-size: clamp(12px, 3vw, 15px);
+}
+
+/* ── Location notice ──────────────────────────────────── */
+#location-notice {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 6px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  transition: color 1.2s ease;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
 
-<div id="time-display">
-  <div id="clock">--:--:--</div>
-  <div id="date"></div>
-</div>
-
-<div id="canvas-wrap">
+<div id="root">
   <canvas id="sky"></canvas>
-</div>
 
-<div id="sun-times">
-  <div class="sun-event">
-    <label>Sunrise</label>
-    <time id="sunrise">--:--</time>
-  </div>
-  <div class="sun-event">
-    <label>Sunset</label>
-    <time id="sunset">--:--</time>
-  </div>
-</div>
+  <div id="overlay">
+    <div id="top">
+      <div id="clock">--:--:--</div>
+      <div id="date"></div>
+    </div>
 
-<div id="location">Locating…</div>
+    <div id="hero">
+      <div id="hero-label">Daylight today</div>
+      <div id="hero-num">
+        <span class="hero-h" id="hero-h">--</span><span class="hero-unit" id="hero-unit-h">h</span><span class="hero-m" id="hero-m">--</span><span class="hero-unit" id="hero-unit-m">m</span>
+      </div>
+    </div>
+
+    <div id="bottom">
+      <div class="stat-row" id="row-primary">
+        <div class="stat-cell">
+          <div class="stat-label" id="lbl-sunrise">Sunrise</div>
+          <div class="stat-val" id="val-sunrise">--:--</div>
+        </div>
+        <div class="stat-cell stat-cell-mid">
+          <div class="stat-label" id="lbl-noon">Solar noon</div>
+          <div class="stat-val" id="val-noon">--:--</div>
+        </div>
+        <div class="stat-cell stat-cell-end">
+          <div class="stat-label" id="lbl-sunset">Sunset</div>
+          <div class="stat-val" id="val-sunset">--:--</div>
+        </div>
+      </div>
+
+      <div class="stat-row" id="row-secondary">
+        <div class="stat-cell">
+          <div class="stat-label" id="lbl-civil-dawn">Civil dawn</div>
+          <div class="stat-val stat-val-sm" id="val-civil-dawn">--:--</div>
+        </div>
+        <div class="stat-cell stat-cell-mid">
+          <div class="stat-label" id="lbl-delta">Time gained</div>
+          <div class="stat-val stat-val-sm" id="val-delta">--</div>
+        </div>
+        <div class="stat-cell stat-cell-end">
+          <div class="stat-label" id="lbl-civil-dusk">Civil dusk</div>
+          <div class="stat-val stat-val-sm" id="val-civil-dusk">--:--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="location-notice">Locating…</div>
+</div>
 
 <script>
-// ── Solar math (NOAA algorithm) ──────────────────────────────
+// ── Solar math (NOAA-derived) ────────────────────────────────────────
+const PI = Math.PI;
+const toRad = d => d * PI / 180;
+const toDeg = r => r * 180 / PI;
+const dateToJulian = d => d.getTime() / 86400000 + 2440587.5;
 
-function toRad(d) { return d * Math.PI / 180; }
-function toDeg(r) { return r * 180 / Math.PI; }
-function dateToJulian(date) { return date.getTime() / 86400000 + 2440587.5; }
-
-function calcSunTimes(date, lat, lon) {
+function solarPosition(date) {
   const JD = dateToJulian(date);
   const T = (JD - 2451545.0) / 36525;
   const L0 = (280.46646 + T * (36000.76983 + T * 0.0003032)) % 360;
@@ -143,339 +258,422 @@ function calcSunTimes(date, lat, lon) {
     - 0.5 * y * y * Math.sin(4 * toRad(L0))
     - 1.25 * 0.016708634 ** 2 * Math.sin(2 * toRad(M))
   );
-  const cosHA = (Math.cos(toRad(90.833)) / (Math.cos(toRad(lat)) * Math.cos(toRad(dec))))
-              - Math.tan(toRad(lat)) * Math.tan(toRad(dec));
-  if (cosHA < -1) return { rise: null, set: null, dec, neverSets: true };
-  if (cosHA > 1)  return { rise: null, set: null, dec, neverRises: true };
-  const HA = toDeg(Math.acos(cosHA));
-  const solarNoon = 720 - 4 * lon - eot;
-  return { rise: solarNoon - 4 * HA, set: solarNoon + 4 * HA, noon: solarNoon, HA, dec };
+  return { dec, eot, L0 };
 }
 
-function minutesToLocal(utcMin, tzOff) { return utcMin - tzOff; }
+function eventsForAltitude(date, lat, lon, tzOffMin, altDeg) {
+  const { dec, eot } = solarPosition(date);
+  const cosHA = (Math.cos(toRad(altDeg)) / (Math.cos(toRad(lat)) * Math.cos(toRad(dec))))
+              - Math.tan(toRad(lat)) * Math.tan(toRad(dec));
+  if (cosHA < -1) return { rise: null, set: null, noon: null, neverSets: true };
+  if (cosHA >  1) return { rise: null, set: null, noon: null, neverRises: true };
+  const HA = toDeg(Math.acos(cosHA));
+  const noonUtc = 720 - 4 * lon - eot;
+  return {
+    rise: noonUtc - 4 * HA - tzOffMin,
+    set:  noonUtc + 4 * HA - tzOffMin,
+    noon: noonUtc - tzOffMin,
+    dec
+  };
+}
 
-function fmtTime(m) {
-  if (m == null) return '--:--';
+function dailyAlmanac(date, lat, lon) {
+  const tzOffMin = date.getTimezoneOffset();
+  const day        = eventsForAltitude(date, lat, lon, tzOffMin, 90.833);
+  const civil      = eventsForAltitude(date, lat, lon, tzOffMin, 96);
+  const nautical   = eventsForAltitude(date, lat, lon, tzOffMin, 102);
+  const astronomic = eventsForAltitude(date, lat, lon, tzOffMin, 108);
+  return {
+    sunrise:    day.rise,
+    sunset:     day.set,
+    solarNoon:  day.noon,
+    civilDawn:  civil.rise,
+    civilDusk:  civil.set,
+    nautDawn:   nautical.rise,
+    nautDusk:   nautical.set,
+    astroDawn:  astronomic.rise,
+    astroDusk:  astronomic.set,
+    neverRises: day.neverRises || false,
+    neverSets:  day.neverSets  || false,
+    dec:        day.dec,
+  };
+}
+
+function altitudeAt(date, lat, lon) {
+  const { dec, eot } = solarPosition(date);
+  const nowUtcMin = date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60;
+  const solarTime = nowUtcMin + 4 * lon + eot;
+  const HA = (solarTime - 720) / 4;
+  const alt = toDeg(Math.asin(
+    Math.sin(toRad(lat)) * Math.sin(toRad(dec))
+    + Math.cos(toRad(lat)) * Math.cos(toRad(dec)) * Math.cos(toRad(HA))
+  ));
+  const az = toDeg(Math.atan2(
+    Math.sin(toRad(HA)),
+    Math.cos(toRad(HA)) * Math.sin(toRad(lat)) - Math.tan(toRad(dec)) * Math.cos(toRad(lat))
+  ));
+  return { alt, az: (az + 180) % 360, dec, HA };
+}
+
+function daylightMinutes(alm) {
+  if (!alm) return null;
+  if (alm.neverSets)  return 1440;
+  if (alm.neverRises) return 0;
+  if (alm.sunrise == null || alm.sunset == null) return null;
+  return alm.sunset - alm.sunrise;
+}
+
+function dayOverDayDelta(today, yesterday) {
+  const t = daylightMinutes(today);
+  const y = daylightMinutes(yesterday);
+  if (t == null || y == null) return null;
+  return t - y;
+}
+
+function fmtClock(m) {
+  if (m == null || !isFinite(m)) return '--:--';
   const mins = ((Math.round(m) % 1440) + 1440) % 1440;
   const h = Math.floor(mins / 60), mn = mins % 60;
-  return `${h % 12 || 12}:${String(mn).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return `${h % 12 || 12}:${String(mn).padStart(2, '0')} ${ampm}`;
 }
 
-// ── State ────────────────────────────────────────────────────
+function fmtDuration(mins) {
+  if (mins == null || !isFinite(mins)) return '--';
+  const m = Math.abs(mins);
+  const h = Math.floor(m / 60), mn = Math.round(m % 60);
+  if (h === 0) return `${mn}m`;
+  return `${h}h ${String(mn).padStart(2,'0')}m`;
+}
 
-let lat = null, lon = null, sunData = null, lastDateStr = null;
+// ── Time-reactive palette ────────────────────────────────────────────
+function lerpHex(h1, h2, t) {
+  const p = (h, o) => parseInt(h.slice(o, o + 2), 16);
+  const r = Math.round(p(h1,1) + (p(h2,1) - p(h1,1)) * t);
+  const g = Math.round(p(h1,3) + (p(h2,3) - p(h1,3)) * t);
+  const b = Math.round(p(h1,5) + (p(h2,5) - p(h1,5)) * t);
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function paletteForAltitude(alt) {
+  const stops = [
+    { a: -90, p: { bg:'#070710', sky:'#0a0c16', horizon:'#101426', ink:'#cdd0e0', dim:'#52576b', accent:'#5b6f9c' } },
+    { a: -18, p: { bg:'#0b0d18', sky:'#13182a', horizon:'#1a2138', ink:'#d4d8e6', dim:'#5e6378', accent:'#7a8fbf' } },
+    { a: -12, p: { bg:'#161628', sky:'#1f2540', horizon:'#2c3658', ink:'#dfe1ec', dim:'#6c7186', accent:'#9eb0d8' } },
+    { a:  -6, p: { bg:'#2a2236', sky:'#3a324e', horizon:'#603d4e', ink:'#ece7df', dim:'#86798a', accent:'#e08a6a' } },
+    { a:-0.5, p: { bg:'#5a3a32', sky:'#85513a', horizon:'#c4753a', ink:'#fff3e2', dim:'#a08474', accent:'#ff8e3c' } },
+    { a:   6, p: { bg:'#c08254', sky:'#e8a574', horizon:'#ffc88a', ink:'#3a2418', dim:'#7a513a', accent:'#ff7a2a' } },
+    { a:  20, p: { bg:'#dcc4a0', sky:'#a7c8e3', horizon:'#e3d6b9', ink:'#1d1a14', dim:'#6a6356', accent:'#d97a2a' } },
+    { a:  45, p: { bg:'#e8e2d2', sky:'#7eb4dc', horizon:'#ddd6c4', ink:'#15140f', dim:'#5e5848', accent:'#c66a1f' } },
+    { a:  60, p: { bg:'#e9e3d2', sky:'#5fa3d2', horizon:'#dfd8c6', ink:'#13120e', dim:'#5a5444', accent:'#b85e18' } },
+  ];
+  if (alt <= stops[0].a) return { ...stops[0].p, alt };
+  if (alt >= stops[stops.length-1].a) return { ...stops[stops.length-1].p, alt };
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (alt >= stops[i].a && alt <= stops[i+1].a) {
+      const lo = stops[i], hi = stops[i+1];
+      const t = (alt - lo.a) / (hi.a - lo.a);
+      return {
+        bg:      lerpHex(lo.p.bg,      hi.p.bg,      t),
+        sky:     lerpHex(lo.p.sky,     hi.p.sky,     t),
+        horizon: lerpHex(lo.p.horizon, hi.p.horizon, t),
+        ink:     lerpHex(lo.p.ink,     hi.p.ink,     t),
+        dim:     lerpHex(lo.p.dim,     hi.p.dim,     t),
+        accent:  lerpHex(lo.p.accent,  hi.p.accent,  t),
+        alt
+      };
+    }
+  }
+  return { ...stops[stops.length-1].p, alt };
+}
+
+function isHexDark(hex) {
+  if (!hex || hex[0] !== '#') return true;
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 < 140;
+}
+
+// ── Canvas helpers ────────────────────────────────────────────────────
+function hexA(hex, a) {
+  if (!hex || hex[0] !== '#') return `rgba(100,100,100,${a})`;
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function darken(hex, amt) {
+  const r = Math.max(0, Math.round(parseInt(hex.slice(1,3),16) * (1 - amt)));
+  const g = Math.max(0, Math.round(parseInt(hex.slice(3,5),16) * (1 - amt)));
+  const b = Math.max(0, Math.round(parseInt(hex.slice(5,7),16) * (1 - amt)));
+  return `rgb(${r},${g},${b})`;
+}
+
+function mixColor(h1, h2, t) {
+  const r = Math.round(parseInt(h1.slice(1,3),16) + (parseInt(h2.slice(1,3),16) - parseInt(h1.slice(1,3),16)) * t);
+  const g = Math.round(parseInt(h1.slice(3,5),16) + (parseInt(h2.slice(3,5),16) - parseInt(h1.slice(3,5),16)) * t);
+  const b = Math.round(parseInt(h1.slice(5,7),16) + (parseInt(h2.slice(5,7),16) - parseInt(h1.slice(5,7),16)) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ── 24h hybrid arc point ──────────────────────────────────────────────
+// Continuous cosine curve — sun passes underground at night, rises at sunrise.
+function hybridArcPoint(minOfDay, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin) {
+  const x = (minOfDay / 1440) * W;
+  const daylight = (sunsetMin - sunriseMin) / 60;
+  const horizonCos = Math.cos(Math.PI * daylight / 24);
+  const phi = ((minOfDay - solarNoonMin) / 720) * Math.PI;
+  const raw = Math.cos(phi) - horizonCos;
+  const peakRaw = 1 - horizonCos;
+  const scale = peakH / Math.max(peakRaw, 0.01);
+  const y = horizonY - raw * scale;
+  return { x, y, alt: raw };
+}
+
+// ── Draw scene ────────────────────────────────────────────────────────
+const canvas = document.getElementById('sky');
+const ctx = canvas.getContext('2d');
+
+function drawScene(W, H, palette, today, nowMin, pos) {
+  const dpr = window.devicePixelRatio || 1;
+  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+    canvas.width  = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  ctx.clearRect(0, 0, W, H);
+
+  const p = palette || { bg:'#070710', sky:'#0a0c16', horizon:'#101426', ink:'#cdd0e0', dim:'#52576b', accent:'#5b6f9c' };
+  const t = today || {};
+
+  const horizonY   = H * 0.62;
+  const topPadding = H * 0.42;
+  const peakH      = horizonY - topPadding;
+
+  // Full-bleed sky → ground gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrad.addColorStop(0, p.sky);
+  skyGrad.addColorStop((horizonY / H) * 0.92, p.horizon);
+  skyGrad.addColorStop(horizonY / H, mixColor(p.horizon, p.bg, 0.35));
+  skyGrad.addColorStop((horizonY / H) + 0.0001, darken(p.bg, 0.08));
+  skyGrad.addColorStop(1, darken(p.bg, 0.32));
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Horizon haze
+  const accent = p.accent || '#5b6f9c';
+  const sunAlt = pos ? pos.alt : -90;
+  const haze = ctx.createLinearGradient(0, horizonY - H * 0.08, 0, horizonY + H * 0.02);
+  haze.addColorStop(0, 'rgba(255,255,255,0)');
+  haze.addColorStop(0.75, hexA(accent, Math.abs(sunAlt) < 10 ? 0.18 : 0.08));
+  haze.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, horizonY - H * 0.08, W, H * 0.10);
+
+  const sunriseMin   = t.sunrise   != null ? t.sunrise   : 360;
+  const sunsetMin    = t.sunset    != null ? t.sunset    : 1080;
+  const solarNoonMin = t.solarNoon != null ? t.solarNoon : 720;
+
+  // Horizon line (drawn under curve)
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY); ctx.lineTo(W, horizonY); ctx.stroke();
+
+  // 24h sun curve
+  const samples = 240;
+  ctx.strokeStyle = hexA(accent, 0.5);
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (let i = 0; i <= samples; i++) {
+    const m = (i / samples) * 1440;
+    const pt = hybridArcPoint(m, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
+    i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+  }
+  ctx.stroke();
+
+  // Sunrise / sunset horizon markers
+  for (const m of [sunriseMin, sunsetMin]) {
+    const pt = hybridArcPoint(m, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
+    ctx.strokeStyle = hexA(accent, 0.65);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pt.x, horizonY - 5); ctx.lineTo(pt.x, horizonY + 5); ctx.stroke();
+  }
+
+  // Sun marker on curve
+  const sunPt = hybridArcPoint(nowMin, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
+  const aboveHorizon = sunPt.alt >= 0;
+
+  // Glow style
+  if (aboveHorizon) {
+    const glow = ctx.createRadialGradient(sunPt.x, sunPt.y, 0, sunPt.x, sunPt.y, 130);
+    glow.addColorStop(0, hexA(accent, 0.5));
+    glow.addColorStop(0.35, hexA(accent, 0.15));
+    glow.addColorStop(1, hexA(accent, 0));
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 130, 0, Math.PI * 2); ctx.fill();
+    const core = ctx.createRadialGradient(sunPt.x, sunPt.y, 0, sunPt.x, sunPt.y, 26);
+    core.addColorStop(0, '#fff6e0');
+    core.addColorStop(0.7, accent);
+    core.addColorStop(1, hexA(accent, 0.3));
+    ctx.fillStyle = core;
+    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 26, 0, Math.PI * 2); ctx.fill();
+  } else {
+    const glow = ctx.createRadialGradient(sunPt.x, sunPt.y, 0, sunPt.x, sunPt.y, 60);
+    glow.addColorStop(0, hexA(accent, 0.25));
+    glow.addColorStop(1, hexA(accent, 0));
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 60, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = hexA(accent, 0.55);
+    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = hexA('#ffffff', 0.35);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 12, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // Stars when sky is dark enough
+  if (sunAlt < -8) {
+    let s = 13;
+    const rng = () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+    for (let i = 0; i < 70; i++) {
+      const sx = rng() * W;
+      const sy = rng() * horizonY * 0.95;
+      const sz = rng() * 0.9 + 0.3;
+      const sa = rng() * 0.5 + 0.25;
+      ctx.beginPath(); ctx.arc(sx, sy, sz, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(240,240,255,${sa})`; ctx.fill();
+    }
+  }
+}
+
+// ── Apply palette to UI text ──────────────────────────────────────────
+function applyPalette(palette) {
+  const p = palette || {};
+  const bgDark = isHexDark(p.bg || '#070710');
+  const fg     = bgDark ? '#f6efe0'                  : (p.ink || '#15140e');
+  const fgDim  = bgDark ? 'rgba(246,239,224,0.55)'   : 'rgba(21,20,14,0.55)';
+  const ruleC  = bgDark ? 'rgba(246,239,224,0.18)'   : 'rgba(21,20,14,0.18)';
+  const accent = p.accent || '#5b6f9c';
+
+  document.getElementById('clock').style.color    = fg;
+  document.getElementById('date').style.color     = fgDim;
+  document.getElementById('hero-label').style.color = fgDim;
+
+  for (const el of document.querySelectorAll('.hero-h, .hero-m')) el.style.color = fg;
+  for (const el of document.querySelectorAll('.hero-unit')) el.style.color = `color-mix(in srgb, ${fg} 55%, transparent)`;
+
+  for (const el of document.querySelectorAll('.stat-label')) el.style.color = fgDim;
+  for (const el of document.querySelectorAll('.stat-val'))   el.style.color = accent;
+
+  document.getElementById('row-secondary').style.borderColor = ruleC;
+  document.getElementById('location-notice').style.color = fg;
+}
+
+// ── State ─────────────────────────────────────────────────────────────
+let lat = null, lon = null;
+let today = null, yesterday = null;
+let pos = null;
+let palette = null;
+let lastDateStr = null;
 
 function recompute(now) {
   if (lat == null) return;
-  const tzOff = now.getTimezoneOffset();
-  const res = calcSunTimes(now, lat, lon);
-  sunData = {
-    riseMin:    res.rise != null ? minutesToLocal(res.rise, tzOff) : null,
-    setMin:     res.set  != null ? minutesToLocal(res.set,  tzOff) : null,
-    noonMin:    res.noon != null ? minutesToLocal(res.noon, tzOff) : null,
-    neverSets:  res.neverSets  || false,
-    neverRises: res.neverRises || false,
-  };
-  document.getElementById('sunrise').textContent = fmtTime(sunData.riseMin);
-  document.getElementById('sunset').textContent  = fmtTime(sunData.setMin);
+  today     = dailyAlmanac(now, lat, lon);
+  const yest = new Date(now.getTime() - 86400000);
+  yesterday = dailyAlmanac(yest, lat, lon);
 }
 
-// ── Canvas ───────────────────────────────────────────────────
+function updateUI(now) {
+  if (lat == null) return;
 
-const canvas = document.getElementById('sky');
-const ctx = canvas.getContext('2d');
-let W, H, horizonY, peakH, sideMargin, nightDepth;
+  pos     = altitudeAt(now, lat, lon);
+  palette = paletteForAltitude(pos.alt);
 
-function resizeCanvas() {
-  const dpr = window.devicePixelRatio || 1;
-  const cssW = canvas.parentElement.clientWidth;
-  const cssH = Math.round(cssW * 0.44);
-  canvas.width  = Math.round(cssW * dpr);
-  canvas.height = Math.round(cssH * dpr);
-  canvas.style.width  = cssW + 'px';
-  canvas.style.height = cssH + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  W = cssW; H = cssH;
-  horizonY   = Math.round(H * 0.70);
-  peakH      = horizonY * 0.82;
-  sideMargin = W * 0.085;
-  nightDepth = (H - horizonY) * 0.62;
-}
+  const nowMin = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  const W = window.innerWidth, H = window.innerHeight;
+  drawScene(W, H, palette, today, nowMin, pos);
+  applyPalette(palette);
 
-// ── Path geometry ────────────────────────────────────────────
-// Sinusoidal arcs: half-sine above horizon (day), half-sine below (night)
+  // Clock
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
 
-function dayPt(t) {
-  // t=0 → sunrise (left, on horizon), t=1 → sunset (right, on horizon)
-  return {
-    x: sideMargin + t * (W - 2 * sideMargin),
-    y: horizonY - Math.sin(Math.PI * t) * peakH
-  };
-}
+  // Date
+  if (now.toDateString() !== lastDateStr) {
+    lastDateStr = now.toDateString();
+    recompute(now);
+    document.getElementById('date').textContent =
+      now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  }
 
-function nightPt(t) {
-  // t=0 → sunset (right, on horizon), t=1 → next sunrise (left, on horizon)
-  return {
-    x: (W - sideMargin) - t * (W - 2 * sideMargin),
-    y: horizonY + Math.sin(Math.PI * t) * nightDepth
-  };
-}
+  if (!today) return;
+  const t = today;
 
-function tracePath(fn, steps) {
-  ctx.beginPath();
-  for (let i = 0; i <= steps; i++) {
-    const p = fn(i / steps);
-    i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+  // Hero: daylight hours + minutes
+  const dl = daylightMinutes(t);
+  const dh = dl != null ? Math.floor(dl / 60) : '--';
+  const dm = dl != null ? String(Math.round(dl % 60)).padStart(2, '0') : '--';
+  document.getElementById('hero-h').textContent = dh;
+  document.getElementById('hero-m').textContent = dm;
+
+  // Primary row
+  document.getElementById('val-sunrise').textContent = fmtClock(t.sunrise);
+  document.getElementById('val-noon').textContent    = fmtClock(t.solarNoon);
+  document.getElementById('val-sunset').textContent  = fmtClock(t.sunset);
+
+  // Secondary row
+  document.getElementById('val-civil-dawn').textContent = fmtClock(t.civilDawn);
+  document.getElementById('val-civil-dusk').textContent = fmtClock(t.civilDusk);
+
+  const delta = dayOverDayDelta(t, yesterday);
+  if (delta != null) {
+    document.getElementById('lbl-delta').textContent = delta >= 0 ? 'Time gained' : 'Time lost';
+    document.getElementById('val-delta').textContent = (delta >= 0 ? '+' : '−') + fmtDuration(Math.abs(delta));
   }
 }
 
-// ── Stars (deterministic) ────────────────────────────────────
-
-const STARS = (() => {
-  const arr = [];
-  let s = 42;
-  const r = () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
-  for (let i = 0; i < 58; i++) arr.push({ rx: r(), ry: r() * 0.88, sz: r() * 0.85 + 0.2, a: r() * 0.45 + 0.35 });
-  return arr;
-})();
-
-// ── Color helpers ─────────────────────────────────────────────
-
-function lerp(a, b, t) { return a + (b - a) * t; }
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
-function lerpHex(h1, h2, t) {
-  const p = (h, o) => parseInt(h.slice(o, o + 2), 16);
-  return `rgb(${Math.round(lerp(p(h1,1),p(h2,1),t))},${Math.round(lerp(p(h1,3),p(h2,3),t))},${Math.round(lerp(p(h1,5),p(h2,5),t))})`;
-}
-
-// ── Draw ──────────────────────────────────────────────────────
-
-function drawScene(nowMin) {
-  ctx.clearRect(0, 0, W, H);
-
-  // Loading / polar night
-  if (!sunData || sunData.neverRises) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#050810'); g.addColorStop(0.7, '#0a0d14'); g.addColorStop(1, '#080604');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#0d0906'; ctx.fillRect(0, horizonY, W, H - horizonY);
-    // Draw static stars
-    for (const s of STARS) {
-      ctx.beginPath(); ctx.arc(s.rx * W, s.ry * horizonY, s.sz, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(210,215,240,${s.a * 0.7})`; ctx.fill();
-    }
-    ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(W, horizonY);
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1; ctx.stroke();
-    if (sunData?.neverRises) {
-      ctx.font = '12px system-ui'; ctx.fillStyle = '#3a3a4a';
-      ctx.textAlign = 'center'; ctx.fillText('No sunrise today', W / 2, H * 0.4);
-    }
-    return;
-  }
-
-  // Polar day
-  if (sunData.neverSets) {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#0b2040'); g.addColorStop(0.7, '#1a5878'); g.addColorStop(1, '#19120a');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#19120a'; ctx.fillRect(0, horizonY, W, H - horizonY);
-    ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(W, horizonY);
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.font = '12px system-ui'; ctx.fillStyle = '#c8a030';
-    ctx.textAlign = 'center'; ctx.fillText('Midnight sun', W / 2, H * 0.35);
-    return;
-  }
-
-  const { riseMin, setMin, noonMin } = sunData;
-  const dayDur   = setMin - riseMin;
-  const nightDur = 1440 - dayDur;
-  const isDaytime = nowMin >= riseMin && nowMin <= setMin;
-
-  let tDay = null, tNight = null;
-  if (isDaytime) {
-    tDay = (nowMin - riseMin) / dayDur;
-  } else if (nowMin < riseMin) {
-    tNight = (nowMin + 1440 - setMin) / nightDur;
-  } else {
-    tNight = (nowMin - setMin) / nightDur;
-  }
-
-  // altFrac: 1=zenith, 0=horizon, negative=underground
-  const altFrac = isDaytime
-    ? Math.sin(Math.PI * tDay)
-    : -Math.sin(Math.PI * tNight);
-
-  // ── Sky gradient ─────────────────────────────────────────
-  let skyTop, skyBot;
-  const a = altFrac;
-  if (a > 0.20) {
-    const f = clamp((a - 0.20) / 0.35, 0, 1);
-    skyTop = lerpHex('#191a2e', '#0b1e3c', f);
-    skyBot = lerpHex('#283848', '#185474', f);
-  } else if (a > -0.10) {
-    const f = clamp((a + 0.10) / 0.30, 0, 1);
-    skyTop = lerpHex('#07080f', '#191a2e', f);
-    skyBot = lerpHex('#3e1608', '#283848', f);
-  } else {
-    skyTop = '#050810'; skyBot = '#090c12';
-  }
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-  skyGrad.addColorStop(0, skyTop);
-  skyGrad.addColorStop(1, skyBot);
-  ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, W, horizonY);
-
-  // ── Ground ───────────────────────────────────────────────
-  const gnd = ctx.createLinearGradient(0, horizonY, 0, H);
-  gnd.addColorStop(0, isDaytime ? '#1a1208' : '#0e0a05');
-  gnd.addColorStop(1, '#070504');
-  ctx.fillStyle = gnd;
-  ctx.fillRect(0, horizonY, W, H - horizonY);
-
-  // ── Stars ────────────────────────────────────────────────
-  const starAlpha = clamp((-altFrac - 0.02) * 7, 0, 1);
-  if (starAlpha > 0) {
-    for (const s of STARS) {
-      ctx.beginPath(); ctx.arc(s.rx * W, s.ry * horizonY, s.sz, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(210,215,240,${s.a * starAlpha})`; ctx.fill();
-    }
-  }
-
-  // ── Horizon glow (dawn / dusk) ───────────────────────────
-  if (Math.abs(altFrac) < 0.13) {
-    const strength = (1 - Math.abs(altFrac) / 0.13) ** 1.5;
-    const isEastSide = nowMin < (noonMin || 720);
-    const gx = isEastSide ? sideMargin : W - sideMargin;
-    const hg = ctx.createRadialGradient(gx, horizonY, 0, gx, horizonY, W * 0.58);
-    hg.addColorStop(0,   `rgba(255,110,25,${0.24 * strength})`);
-    hg.addColorStop(0.45,`rgba(190,60,10,${0.10 * strength})`);
-    hg.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.fillStyle = hg; ctx.fillRect(0, 0, W, H);
-  }
-
-  // ── Night arc (dashed, below horizon) ───────────────────
-  ctx.save();
-  ctx.beginPath(); ctx.rect(0, horizonY, W, H - horizonY); ctx.clip();
-  tracePath(nightPt, 80);
-  ctx.setLineDash([2, 7]);
-  ctx.strokeStyle = 'rgba(180,185,210,0.08)';
-  ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.setLineDash([]); ctx.restore();
-
-  // ── Day arc (above horizon) ──────────────────────────────
-  ctx.save();
-  ctx.beginPath(); ctx.rect(0, 0, W, horizonY); ctx.clip();
-
-  // Full track
-  tracePath(dayPt, 80);
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-  ctx.lineWidth = 1.5; ctx.stroke();
-
-  // Elapsed segment
-  if (isDaytime && tDay > 0.004) {
-    ctx.beginPath();
-    for (let i = 0; i <= 80; i++) {
-      const p = dayPt((i / 80) * tDay);
-      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
-    }
-    ctx.strokeStyle = 'rgba(255,170,30,0.52)';
-    ctx.lineWidth = 1.5; ctx.stroke();
-  }
-
-  ctx.restore();
-
-  // ── Horizon line ─────────────────────────────────────────
-  const hl = ctx.createLinearGradient(0, 0, W, 0);
-  hl.addColorStop(0,    'rgba(255,255,255,0)');
-  hl.addColorStop(0.12, 'rgba(255,255,255,0.11)');
-  hl.addColorStop(0.88, 'rgba(255,255,255,0.11)');
-  hl.addColorStop(1,    'rgba(255,255,255,0)');
-  ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(W, horizonY);
-  ctx.strokeStyle = hl; ctx.lineWidth = 1; ctx.stroke();
-
-  // ── Sun ──────────────────────────────────────────────────
-  const sunPos = isDaytime ? dayPt(tDay) : nightPt(tNight);
-  const { x: sx, y: sy } = sunPos;
-
-  if (isDaytime) {
-    // Color shifts warm near horizon
-    let coreFill, gc0, gc1;
-    if (altFrac > 0.22) {
-      coreFill = '#fff3a0';
-      gc0 = 'rgba(255,215,65,0.55)'; gc1 = 'rgba(255,160,20,0)';
-    } else if (altFrac > 0.05) {
-      const f = (altFrac - 0.05) / 0.17;
-      coreFill = lerpHex('#ffa040', '#fff3a0', f);
-      gc0 = `rgba(255,${Math.round(lerp(110,215,f))},${Math.round(lerp(25,65,f))},0.62)`;
-      gc1 = 'rgba(0,0,0,0)';
-    } else {
-      coreFill = '#ff7820';
-      gc0 = 'rgba(255,85,15,0.68)'; gc1 = 'rgba(0,0,0,0)';
-    }
-    const grd = ctx.createRadialGradient(sx, sy, 3, sx, sy, 22);
-    grd.addColorStop(0, gc0); grd.addColorStop(1, gc1);
-    ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI * 2);
-    ctx.fillStyle = grd; ctx.fill();
-    ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2);
-    ctx.fillStyle = coreFill; ctx.fill();
-  } else {
-    // Sun below horizon — show faint dot tracking underground
-    const depthFrac = clamp(altFrac / -1, 0, 1); // 0=just below, 1=deepest
-    const alpha = 0.15 + (1 - depthFrac) * 0.15;
-    ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(100,100,130,${alpha})`; ctx.fill();
-  }
-
-  // ── Sunrise / sunset time labels ─────────────────────────
-  const lY = horizonY + 13;
-  ctx.font = '10px system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  ctx.textAlign = 'left';
-  ctx.fillText(fmtTime(riseMin), sideMargin + 3, lY);
-  ctx.textAlign = 'right';
-  ctx.fillText(fmtTime(setMin), W - sideMargin - 3, lY);
-}
-
-// ── Tick ──────────────────────────────────────────────────────
-
+// ── Tick ──────────────────────────────────────────────────────────────
 function tick() {
   const now = new Date();
-  const dateStr = now.toDateString();
-  if (dateStr !== lastDateStr) {
-    lastDateStr = dateStr;
-    recompute(now);
-    document.getElementById('date').textContent = now.toLocaleDateString(undefined, {
-      weekday: 'long', month: 'long', day: 'numeric'
-    });
+  if (lat == null) {
+    // Draw dark sky while waiting for location
+    const W = window.innerWidth, H = window.innerHeight;
+    drawScene(W, H, null, null, 0, null);
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    return;
   }
-  document.getElementById('clock').textContent = now.toLocaleTimeString(undefined, {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-  });
-  const nowMin = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-  drawScene(nowMin);
+  updateUI(now);
 }
 
-// ── Geolocation ───────────────────────────────────────────────
-
+// ── Geolocation ───────────────────────────────────────────────────────
 navigator.geolocation.getCurrentPosition(
-  pos => {
-    lat = pos.coords.latitude;
-    lon = pos.coords.longitude;
-    const latS = `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? 'N' : 'S'}`;
-    const lonS = `${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? 'E' : 'W'}`;
-    document.getElementById('location').textContent = `${latS}  ${lonS}`;
+  p => {
+    lat = p.coords.latitude;
+    lon = p.coords.longitude;
+    const latS = `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}`;
+    const lonS = `${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}`;
+    document.getElementById('location-notice').textContent = `${latS}  ${lonS}`;
     lastDateStr = null;
     tick();
   },
-  () => { document.getElementById('location').textContent = 'Enable location for sun times'; },
+  () => {
+    // San Francisco fallback
+    lat = 37.77; lon = -122.42;
+    document.getElementById('location-notice').textContent = 'San Francisco (demo location)';
+    lastDateStr = null;
+    tick();
+  },
   { enableHighAccuracy: false, timeout: 10000 }
 );
 
-// ── Bootstrap ─────────────────────────────────────────────────
-
-resizeCanvas();
-window.addEventListener('resize', () => { resizeCanvas(); tick(); });
+window.addEventListener('resize', tick);
 setInterval(tick, 1000);
 tick();
 </script>
