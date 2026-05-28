@@ -56,7 +56,7 @@ body {
 #top {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 12px;
 }
 
@@ -68,11 +68,25 @@ body {
   transition: color 1.2s ease;
 }
 
+#date-group {
+  text-align: right;
+}
+
 #date {
   font-size: clamp(10px, 2.5vw, 12px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 500;
+  transition: color 1.2s ease;
+}
+
+#location-display {
+  font-size: clamp(9px, 2vw, 11px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 400;
+  margin-top: 4px;
+  opacity: 0.55;
   transition: color 1.2s ease;
 }
 
@@ -182,7 +196,10 @@ body {
   <div id="overlay">
     <div id="top">
       <div id="clock">--:--:--</div>
-      <div id="date"></div>
+      <div id="date-group">
+        <div id="date"></div>
+        <div id="location-display"></div>
+      </div>
     </div>
 
     <div id="hero">
@@ -573,6 +590,7 @@ function applyPalette(palette) {
 
   document.getElementById('row-secondary').style.borderColor = ruleC;
   document.getElementById('location-notice').style.color = fg;
+  document.getElementById('location-display').style.color = fg;
 }
 
 // ── State ─────────────────────────────────────────────────────────────
@@ -659,14 +677,17 @@ navigator.geolocation.getCurrentPosition(
     lon = p.coords.longitude;
     const latS = `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}`;
     const lonS = `${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}`;
-    document.getElementById('location-notice').textContent = `${latS}  ${lonS}`;
+    const coordStr = `${latS}  ${lonS}`;
+    document.getElementById('location-display').textContent = coordStr;
+    document.getElementById('location-notice').textContent = coordStr;
     lastDateStr = null;
     tick();
   },
   () => {
-    // San Francisco fallback
-    lat = 37.77; lon = -122.42;
-    document.getElementById('location-notice').textContent = 'San Francisco (demo location)';
+    // Aberdeen, Scotland fallback
+    lat = 57.15; lon = -2.11;
+    document.getElementById('location-display').textContent = 'Aberdeen, Scotland';
+    document.getElementById('location-notice').textContent = 'Aberdeen, Scotland';
     lastDateStr = null;
     tick();
   },
