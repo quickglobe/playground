@@ -4,7 +4,7 @@ A collection of random little projects, experiments, and tests — primarily bui
 
 ## Structure
 
-Each project lives in its own branch. Branches are generally standalone and not merged into main.
+Each project lives in its own folder under `main`. The root `index.html` serves as a browsable project index, hosted via GitHub Pages at `https://quickglobe.github.io/playground/`.
 
 ## Stack
 

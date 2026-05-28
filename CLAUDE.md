@@ -1,10 +1,11 @@
 # Claude Code Guide
 
-This repo is a personal playground for small, self-contained projects and experiments. Each project typically lives on its own branch and is not merged back to main.
+This repo is a personal playground for small, self-contained projects and experiments, hosted on GitHub Pages. Each project lives in its own folder under `main`, and the root `index.html` is a browsable project index.
 
 ## Project conventions
 
-- Each experiment or project gets its own branch
+- Each experiment or project gets its own folder (e.g. `my-project/index.html`)
+- Add a card for each new project to the root `index.html`
 - Projects are primarily HTML/CSS/JavaScript — single files or small multi-file setups
 - No build step unless the project specifically calls for it
 - Keep things simple and self-contained
