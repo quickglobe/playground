@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playground</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d0d18;
+    color: #c8c0d8;
+    font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 3rem 1.5rem;
+  }
+
+  header {
+    max-width: 720px;
+    margin: 0 auto 3rem;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e8e0f0;
+    letter-spacing: -0.02em;
+  }
+
+  header p {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #6a6080;
+  }
+
+  .grid {
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  a.card {
+    display: block;
+    background: #16131f;
+    border: 1px solid #2a2440;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  a.card:hover {
+    border-color: #6040c0;
+    background: #1c1830;
+  }
+
+  .card-icon {
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+
+  .card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e8e0f0;
+    margin-bottom: 0.4rem;
+  }
+
+  .card p {
+    font-size: 0.85rem;
+    color: #6a6080;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Playground</h1>
+  <p>Small experiments and one-off projects.</p>
+</header>
+
+<div class="grid">
+
+  <a class="card" href="sun-tracker/">
+    <div class="card-icon">☀️</div>
+    <h2>Sun Tracker</h2>
+    <p>Displays sunrise, sunset, and solar noon for your location, with an animated arc showing the sun's current position.</p>
+  </a>
+
+  <a class="card" href="game-of-life/">
+    <div class="card-icon">🔲</div>
+    <h2>Game of Life</h2>
+    <p>Conway's Game of Life simulation with pan, zoom, adjustable speed, and touch support for drawing cells.</p>
+  </a>
+
+</div>
+
+</body>
+</html>

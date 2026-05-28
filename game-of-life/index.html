@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Game of Life</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #16213e;
+    border-bottom: 1px solid #0f3460;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  #toolbar h1 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e94560;
+    white-space: nowrap;
+  }
+
+  .sep { flex: 1; }
+
+  button {
+    background: #0f3460;
+    color: #e0e0e0;
+    border: 1px solid #e94560;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  button:hover { background: #e94560; color: #fff; }
+  button:active { opacity: 0.8; }
+
+  #speed-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 90px;
+    height: 4px;
+    border-radius: 2px;
+    background: #0f3460;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #e94560;
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #e94560;
+    border: none;
+    cursor: pointer;
+  }
+
+  #gen-counter {
+    font-size: 0.8rem;
+    color: #a0a0c0;
+    white-space: nowrap;
+  }
+
+  #status-label {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #2a2a4e;
+    color: #a0a0c0;
+    white-space: nowrap;
+  }
+  #status-label.paused { color: #f0c040; }
+  #status-label.running { color: #40e0a0; }
+
+  #canvas-wrap {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    touch-action: none;
+  }
+
+  canvas {
+    display: block;
+    cursor: crosshair;
+    image-rendering: pixelated;
+  }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>Game of Life</h1>
+  <button id="btn-play">▶ Play</button>
+  <div id="speed-group">
+    <span>Speed</span>
+    <input type="range" id="speed-slider" min="1" max="30" value="10">
+    <span id="speed-val">10 fps</span>
+  </div>
+  <span class="sep"></span>
+  <button id="btn-random">Random</button>
+  <button id="btn-clear">Clear</button>
+  <span id="gen-counter">Gen 0</span>
+  <span id="status-label" class="paused">Paused — tap to draw</span>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<script>
+const CELL = 14;          // cell size in pixels at scale 1
+const DEAD = 0, ALIVE = 1;
+
+let cols, rows;
+let grid, nextGrid;
+let generation = 0;
+let running = false;
+let frameInterval = 1000 / 10;
+let lastFrameTime = 0;
+let animId = null;
+
+// pan/zoom state
+let scale = 1;
+let panX = 0, panY = 0;   // offset in screen pixels
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+const btnPlay = document.getElementById('btn-play');
+const speedSlider = document.getElementById('speed-slider');
+const speedVal = document.getElementById('speed-val');
+const genCounter = document.getElementById('gen-counter');
+const statusLabel = document.getElementById('status-label');
+
+// ── grid helpers ──────────────────────────────────────────────────────────────
+
+function makeGrid(c, r) {
+  return new Uint8Array(c * r);
+}
+
+function idx(c, r) {
+  return r * cols + c;
+}
+
+function initSize() {
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  canvas.width = w;
+  canvas.height = h;
+  cols = Math.max(20, Math.ceil(w / CELL) + 4);
+  rows = Math.max(20, Math.ceil(h / CELL) + 4);
+  grid = makeGrid(cols, rows);
+  nextGrid = makeGrid(cols, rows);
+  panX = 0; panY = 0; scale = 1;
+  generation = 0;
+  updateGen();
+}
+
+function randomize() {
+  for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < 0.3 ? ALIVE : DEAD;
+}
+
+function clearGrid() {
+  grid.fill(DEAD);
+  nextGrid.fill(DEAD);
+  generation = 0;
+  updateGen();
+}
+
+// ── Game of Life step ──────────────────────────────────────────────────────────
+
+function step() {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let n = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = (r + dr + rows) % rows;
+          const nc = (c + dc + cols) % cols;
+          n += grid[idx(nc, nr)];
+        }
+      }
+      const alive = grid[idx(c, r)];
+      nextGrid[idx(c, r)] = (alive && (n === 2 || n === 3)) || (!alive && n === 3) ? ALIVE : DEAD;
+    }
+  }
+  [grid, nextGrid] = [nextGrid, grid];
+  generation++;
+  updateGen();
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+
+function draw() {
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // fill background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, w, h);
+
+  const cs = CELL * scale;
+
+  // draw cells
+  ctx.fillStyle = '#e94560';
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[idx(c, r)] === ALIVE) {
+        const sx = panX + c * cs;
+        const sy = panY + r * cs;
+        if (sx + cs < 0 || sy + cs < 0 || sx > w || sy > h) continue;
+        ctx.fillRect(sx + 0.5, sy + 0.5, cs - 1, cs - 1);
+      }
+    }
+  }
+
+  // grid lines (only when big enough)
+  if (cs >= 6) {
+    ctx.strokeStyle = 'rgba(15,52,96,0.6)';
+    ctx.lineWidth = 0.5;
+    const startC = Math.max(0, Math.floor(-panX / cs));
+    const endC   = Math.min(cols, Math.ceil((w - panX) / cs));
+    const startR = Math.max(0, Math.floor(-panY / cs));
+    const endR   = Math.min(rows, Math.ceil((h - panY) / cs));
+
+    ctx.beginPath();
+    for (let c = startC; c <= endC; c++) {
+      const x = panX + c * cs;
+      ctx.moveTo(x, 0); ctx.lineTo(x, h);
+    }
+    for (let r = startR; r <= endR; r++) {
+      const y = panY + r * cs;
+      ctx.moveTo(0, y); ctx.lineTo(w, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// ── Animation loop ─────────────────────────────────────────────────────────────
+
+function loop(ts) {
+  animId = requestAnimationFrame(loop);
+  if (running && ts - lastFrameTime >= frameInterval) {
+    step();
+    lastFrameTime = ts;
+  }
+  draw();
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+
+function updateGen() {
+  genCounter.textContent = `Gen ${generation}`;
+}
+
+function setRunning(val) {
+  running = val;
+  btnPlay.textContent = running ? '⏸ Pause' : '▶ Play';
+  statusLabel.textContent = running ? 'Running' : 'Paused — tap to draw';
+  statusLabel.className = running ? 'running' : 'paused';
+}
+
+btnPlay.addEventListener('click', () => setRunning(!running));
+
+speedSlider.addEventListener('input', () => {
+  const fps = +speedSlider.value;
+  speedVal.textContent = `${fps} fps`;
+  frameInterval = 1000 / fps;
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  clearGrid(); randomize();
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  clearGrid();
+});
+
+// ── Screen → cell coords ───────────────────────────────────────────────────────
+
+function screenToCell(sx, sy) {
+  const cs = CELL * scale;
+  const c = Math.floor((sx - panX) / cs);
+  const r = Math.floor((sy - panY) / cs);
+  return { c, r };
+}
+
+function cellInBounds(c, r) {
+  return c >= 0 && c < cols && r >= 0 && r < rows;
+}
+
+// ── Mouse input ───────────────────────────────────────────────────────────────
+
+let drawMode = null;  // ALIVE or DEAD — set on mousedown
+
+canvas.addEventListener('mousedown', e => {
+  if (running) return;
+  const rect = canvas.getBoundingClientRect();
+  const { c, r } = screenToCell(e.clientX - rect.left, e.clientY - rect.top);
+  if (!cellInBounds(c, r)) return;
+  drawMode = grid[idx(c, r)] === ALIVE ? DEAD : ALIVE;
+  grid[idx(c, r)] = drawMode;
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (running || drawMode === null) return;
+  const rect = canvas.getBoundingClientRect();
+  const { c, r } = screenToCell(e.clientX - rect.left, e.clientY - rect.top);
+  if (cellInBounds(c, r)) grid[idx(c, r)] = drawMode;
+});
+
+window.addEventListener('mouseup', () => { drawMode = null; });
+
+// Mouse wheel zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const newScale = Math.max(0.3, Math.min(8, scale * factor));
+  panX = mx - (mx - panX) * (newScale / scale);
+  panY = my - (my - panY) * (newScale / scale);
+  scale = newScale;
+}, { passive: false });
+
+// ── Touch input ───────────────────────────────────────────────────────────────
+
+let touches = {};      // identifier → {x, y}
+let lastPinchDist = null;
+let lastPinchMid = null;
+let touchDrawMode = null;
+let touchMoved = false;
+
+function getTouchPos(t) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+}
+
+function pinchDist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function pinchMid(a, b) {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    touches[t.identifier] = getTouchPos(t);
+  }
+  touchMoved = false;
+
+  const ids = Object.keys(touches);
+  if (ids.length === 2) {
+    const a = touches[ids[0]], b = touches[ids[1]];
+    lastPinchDist = pinchDist(a, b);
+    lastPinchMid  = pinchMid(a, b);
+    touchDrawMode = null;
+  } else if (ids.length === 1 && !running) {
+    const pos = touches[ids[0]];
+    const { c, r } = screenToCell(pos.x, pos.y);
+    if (cellInBounds(c, r)) {
+      touchDrawMode = grid[idx(c, r)] === ALIVE ? DEAD : ALIVE;
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const prevTouches = { ...touches };
+  for (const t of e.changedTouches) {
+    touches[t.identifier] = getTouchPos(t);
+  }
+  touchMoved = true;
+
+  const ids = Object.keys(touches);
+  if (ids.length === 2) {
+    const a = touches[ids[0]], b = touches[ids[1]];
+    const dist = pinchDist(a, b);
+    const mid  = pinchMid(a, b);
+
+    if (lastPinchDist !== null) {
+      // zoom
+      const factor = dist / lastPinchDist;
+      const newScale = Math.max(0.3, Math.min(8, scale * factor));
+      panX = mid.x - (mid.x - panX) * (newScale / scale);
+      panY = mid.y - (mid.y - panY) * (newScale / scale);
+      scale = newScale;
+
+      // pan
+      panX += mid.x - lastPinchMid.x;
+      panY += mid.y - lastPinchMid.y;
+    }
+    lastPinchDist = dist;
+    lastPinchMid  = mid;
+
+  } else if (ids.length === 1) {
+    const id = ids[0];
+    const prev = prevTouches[id];
+    const curr = touches[id];
+
+    if (running || touchDrawMode === null) {
+      // pan
+      panX += curr.x - prev.x;
+      panY += curr.y - prev.y;
+    } else {
+      // draw
+      const { c, r } = screenToCell(curr.x, curr.y);
+      if (cellInBounds(c, r)) grid[idx(c, r)] = touchDrawMode;
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    delete touches[t.identifier];
+  }
+  const ids = Object.keys(touches);
+  if (ids.length < 2) {
+    lastPinchDist = null;
+    lastPinchMid  = null;
+  }
+  if (ids.length === 0) {
+    touchDrawMode = null;
+  }
+}, { passive: false });
+
+// ── Resize ─────────────────────────────────────────────────────────────────────
+
+function onResize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  canvas.width = w;
+  canvas.height = h;
+  // re-center pan so existing cells stay visible
+}
+
+window.addEventListener('resize', onResize);
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+initSize();
+randomize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
