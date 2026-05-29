@@ -148,7 +148,7 @@
 
 <div id="toolbar">
   <h1>Game of Life</h1>
-  <button id="btn-play">▶ Play</button>
+  <button id="btn-play">Play</button>
   <div id="speed-group">
     <span>Speed</span>
     <input type="range" id="speed-slider" min="1" max="30" value="10">
@@ -159,7 +159,7 @@
   <button id="btn-clear">Clear</button>
   <span id="gen-counter">Gen 0</span>
   <span id="status-label" class="paused">Paused — tap to draw</span>
-  <button id="btn-theme" title="Toggle light/dark mode">☀️</button>
+  <button id="btn-theme" title="Toggle light/dark mode">Light</button>
 </div>
 
 <div id="canvas-wrap">
@@ -189,7 +189,7 @@ let currentTheme = systemDark.matches ? 'dark' : 'light';
 function applyTheme(theme) {
   currentTheme = theme;
   document.body.dataset.theme = theme === 'light' ? 'light' : '';
-  document.getElementById('btn-theme').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('btn-theme').textContent = theme === 'dark' ? 'Light' : 'Dark';
 }
 
 function toggleTheme() {
@@ -340,7 +340,7 @@ function updateGen() {
 
 function setRunning(val) {
   running = val;
-  btnPlay.textContent = running ? '⏸ Pause' : '▶ Play';
+  btnPlay.textContent = running ? 'Pause' : 'Play';
   statusLabel.textContent = running ? 'Running' : 'Paused — tap to draw';
   statusLabel.className = running ? 'running' : 'paused';
 }
