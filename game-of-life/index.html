@@ -7,9 +7,33 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --bg:          #1a1a2e;
+    --toolbar-bg:  #16213e;
+    --border:      #0f3460;
+    --accent:      #e94560;
+    --btn-bg:      #0f3460;
+    --text:        #e0e0e0;
+    --muted:       #a0a0c0;
+    --badge-bg:    #2a2a4e;
+    --range-track: #0f3460;
+  }
+
+  [data-theme="light"] {
+    --bg:          #f0f4ff;
+    --toolbar-bg:  #e4e8f8;
+    --border:      #c5cae9;
+    --accent:      #e94560;
+    --btn-bg:      #e4e8f8;
+    --text:        #1a1a2e;
+    --muted:       #5060a0;
+    --badge-bg:    #d5d8f0;
+    --range-track: #c5cae9;
+  }
+
   body {
-    background: #1a1a2e;
-    color: #e0e0e0;
+    background: var(--bg);
+    color: var(--text);
     font-family: system-ui, sans-serif;
     display: flex;
     flex-direction: column;
@@ -23,8 +47,8 @@
     align-items: center;
     gap: 12px;
     padding: 10px 14px;
-    background: #16213e;
-    border-bottom: 1px solid #0f3460;
+    background: var(--toolbar-bg);
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     flex-wrap: wrap;
   }
@@ -32,25 +56,30 @@
   #toolbar h1 {
     font-size: 1rem;
     font-weight: 600;
-    color: #e94560;
+    color: var(--accent);
     white-space: nowrap;
   }
 
   .sep { flex: 1; }
 
   button {
-    background: #0f3460;
-    color: #e0e0e0;
-    border: 1px solid #e94560;
+    background: var(--btn-bg);
+    color: var(--text);
+    border: 1px solid var(--accent);
     border-radius: 6px;
     padding: 6px 14px;
     font-size: 0.85rem;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, color 0.15s;
     white-space: nowrap;
   }
-  button:hover { background: #e94560; color: #fff; }
+  button:hover { background: var(--accent); color: #fff; }
   button:active { opacity: 0.8; }
+
+  #btn-theme {
+    border-color: var(--border);
+    padding: 6px 10px;
+  }
 
   #speed-group {
     display: flex;
@@ -65,7 +94,7 @@
     width: 90px;
     height: 4px;
     border-radius: 2px;
-    background: #0f3460;
+    background: var(--range-track);
     outline: none;
     cursor: pointer;
   }
@@ -73,20 +102,20 @@
     -webkit-appearance: none;
     width: 14px; height: 14px;
     border-radius: 50%;
-    background: #e94560;
+    background: var(--accent);
     cursor: pointer;
   }
   input[type=range]::-moz-range-thumb {
     width: 14px; height: 14px;
     border-radius: 50%;
-    background: #e94560;
+    background: var(--accent);
     border: none;
     cursor: pointer;
   }
 
   #gen-counter {
     font-size: 0.8rem;
-    color: #a0a0c0;
+    color: var(--muted);
     white-space: nowrap;
   }
 
@@ -94,8 +123,8 @@
     font-size: 0.75rem;
     padding: 3px 8px;
     border-radius: 4px;
-    background: #2a2a4e;
-    color: #a0a0c0;
+    background: var(--badge-bg);
+    color: var(--muted);
     white-space: nowrap;
   }
   #status-label.paused { color: #f0c040; }
@@ -130,6 +159,7 @@
   <button id="btn-clear">Clear</button>
   <span id="gen-counter">Gen 0</span>
   <span id="status-label" class="paused">Paused — tap to draw</span>
+  <button id="btn-theme" title="Toggle light/dark mode">☀️</button>
 </div>
 
 <div id="canvas-wrap">
@@ -137,8 +167,29 @@
 </div>
 
 <script>
-const CELL = 14;          // cell size in pixels at scale 1
+const CELL = 14;
 const DEAD = 0, ALIVE = 1;
+
+const THEMES = {
+  dark: {
+    bg:        '#1a1a2e',
+    cell:      '#e94560',
+    grid:      'rgba(15,52,96,0.6)',
+  },
+  light: {
+    bg:        '#f0f4ff',
+    cell:      '#e94560',
+    grid:      'rgba(150,165,220,0.5)',
+  },
+};
+
+let currentTheme = 'dark';
+
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.body.dataset.theme = currentTheme === 'light' ? 'light' : '';
+  document.getElementById('btn-theme').textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+}
 
 let cols, rows;
 let grid, nextGrid;
@@ -148,9 +199,8 @@ let frameInterval = 1000 / 10;
 let lastFrameTime = 0;
 let animId = null;
 
-// pan/zoom state
 let scale = 1;
-let panX = 0, panY = 0;   // offset in screen pixels
+let panX = 0, panY = 0;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -223,16 +273,15 @@ function step() {
 
 function draw() {
   const w = canvas.width, h = canvas.height;
+  const palette = THEMES[currentTheme];
   ctx.clearRect(0, 0, w, h);
 
-  // fill background
-  ctx.fillStyle = '#1a1a2e';
+  ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, w, h);
 
   const cs = CELL * scale;
 
-  // draw cells
-  ctx.fillStyle = '#e94560';
+  ctx.fillStyle = palette.cell;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (grid[idx(c, r)] === ALIVE) {
@@ -244,9 +293,8 @@ function draw() {
     }
   }
 
-  // grid lines (only when big enough)
   if (cs >= 6) {
-    ctx.strokeStyle = 'rgba(15,52,96,0.6)';
+    ctx.strokeStyle = palette.grid;
     ctx.lineWidth = 0.5;
     const startC = Math.max(0, Math.floor(-panX / cs));
     const endC   = Math.min(cols, Math.ceil((w - panX) / cs));
@@ -306,6 +354,8 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   clearGrid();
 });
 
+document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+
 // ── Screen → cell coords ───────────────────────────────────────────────────────
 
 function screenToCell(sx, sy) {
@@ -321,7 +371,7 @@ function cellInBounds(c, r) {
 
 // ── Mouse input ───────────────────────────────────────────────────────────────
 
-let drawMode = null;  // ALIVE or DEAD — set on mousedown
+let drawMode = null;
 
 canvas.addEventListener('mousedown', e => {
   if (running) return;
@@ -341,7 +391,6 @@ canvas.addEventListener('mousemove', e => {
 
 window.addEventListener('mouseup', () => { drawMode = null; });
 
-// Mouse wheel zoom
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
@@ -356,7 +405,7 @@ canvas.addEventListener('wheel', e => {
 
 // ── Touch input ───────────────────────────────────────────────────────────────
 
-let touches = {};      // identifier → {x, y}
+let touches = {};
 let lastPinchDist = null;
 let lastPinchMid = null;
 let touchDrawMode = null;
@@ -412,14 +461,12 @@ canvas.addEventListener('touchmove', e => {
     const mid  = pinchMid(a, b);
 
     if (lastPinchDist !== null) {
-      // zoom
       const factor = dist / lastPinchDist;
       const newScale = Math.max(0.3, Math.min(8, scale * factor));
       panX = mid.x - (mid.x - panX) * (newScale / scale);
       panY = mid.y - (mid.y - panY) * (newScale / scale);
       scale = newScale;
 
-      // pan
       panX += mid.x - lastPinchMid.x;
       panY += mid.y - lastPinchMid.y;
     }
@@ -432,11 +479,9 @@ canvas.addEventListener('touchmove', e => {
     const curr = touches[id];
 
     if (running || touchDrawMode === null) {
-      // pan
       panX += curr.x - prev.x;
       panY += curr.y - prev.y;
     } else {
-      // draw
       const { c, r } = screenToCell(curr.x, curr.y);
       if (cellInBounds(c, r)) grid[idx(c, r)] = touchDrawMode;
     }
@@ -464,7 +509,6 @@ function onResize() {
   const w = wrap.clientWidth, h = wrap.clientHeight;
   canvas.width = w;
   canvas.height = h;
-  // re-center pan so existing cells stay visible
 }
 
 window.addEventListener('resize', onResize);
