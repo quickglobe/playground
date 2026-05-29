@@ -44,13 +44,19 @@
 
   #toolbar {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px;
     background: var(--toolbar-bg);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    flex-wrap: wrap;
+  }
+
+  #toolbar-top,
+  #toolbar-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   #toolbar h1 {
@@ -67,7 +73,8 @@
     color: var(--text);
     border: 1px solid var(--accent);
     border-radius: 6px;
-    padding: 6px 14px;
+    padding: 0 14px;
+    height: 40px;
     font-size: 0.85rem;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
@@ -77,18 +84,13 @@
   button:active { opacity: 0.8; }
 
   #btn-play {
-    min-width: 72px;
+    min-width: 76px;
     text-align: center;
   }
 
   #btn-theme {
     border-color: var(--border);
-    padding: 6px 10px;
-  }
-
-  #status-label {
-    min-width: 68px;
-    text-align: center;
+    padding: 0 10px;
   }
 
   #speed-group {
@@ -96,12 +98,21 @@
     align-items: center;
     gap: 6px;
     font-size: 0.8rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  #speed-val {
     white-space: nowrap;
+    color: var(--muted);
+    min-width: 38px;
   }
 
   input[type=range] {
     -webkit-appearance: none;
-    width: 90px;
+    flex: 1;
+    min-width: 50px;
+    max-width: 140px;
     height: 4px;
     border-radius: 2px;
     background: var(--range-track);
@@ -110,13 +121,13 @@
   }
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px; height: 14px;
+    width: 18px; height: 18px;
     border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
   }
   input[type=range]::-moz-range-thumb {
-    width: 14px; height: 14px;
+    width: 18px; height: 18px;
     border-radius: 50%;
     background: var(--accent);
     border: none;
@@ -127,20 +138,7 @@
     font-size: 0.8rem;
     color: var(--muted);
     white-space: nowrap;
-    min-width: 80px;
-    text-align: right;
   }
-
-  #status-label {
-    font-size: 0.75rem;
-    padding: 3px 8px;
-    border-radius: 4px;
-    background: var(--badge-bg);
-    color: var(--muted);
-    white-space: nowrap;
-  }
-  #status-label.paused { color: #f0c040; }
-  #status-label.running { color: #40e0a0; }
 
   #canvas-wrap {
     flex: 1;
@@ -159,19 +157,22 @@
 <body>
 
 <div id="toolbar">
-  <h1>Game of Life</h1>
-  <button id="btn-play">Play</button>
-  <div id="speed-group">
-    <span>Speed</span>
-    <input type="range" id="speed-slider" min="1" max="30" value="10">
-    <span id="speed-val">10 fps</span>
+  <div id="toolbar-top">
+    <h1>Game of Life</h1>
+    <span class="sep"></span>
+    <span id="gen-counter">Gen 0</span>
+    <button id="btn-theme" title="Toggle light/dark mode">Light</button>
   </div>
-  <span class="sep"></span>
-  <button id="btn-random">Random</button>
-  <button id="btn-clear">Clear</button>
-  <span id="gen-counter">Gen 0</span>
-  <span id="status-label" class="paused">Paused</span>
-  <button id="btn-theme" title="Toggle light/dark mode">Light</button>
+  <div id="toolbar-bottom">
+    <button id="btn-play">Play</button>
+    <div id="speed-group">
+      <input type="range" id="speed-slider" min="1" max="30" value="10">
+      <span id="speed-val">10 fps</span>
+    </div>
+    <span class="sep"></span>
+    <button id="btn-random">Random</button>
+    <button id="btn-clear">Clear</button>
+  </div>
 </div>
 
 <div id="canvas-wrap">
@@ -228,7 +229,6 @@ const btnPlay = document.getElementById('btn-play');
 const speedSlider = document.getElementById('speed-slider');
 const speedVal = document.getElementById('speed-val');
 const genCounter = document.getElementById('gen-counter');
-const statusLabel = document.getElementById('status-label');
 
 // ── grid helpers ──────────────────────────────────────────────────────────────
 
@@ -353,8 +353,6 @@ function updateGen() {
 function setRunning(val) {
   running = val;
   btnPlay.textContent = running ? 'Pause' : 'Play';
-  statusLabel.textContent = running ? 'Running' : 'Paused';
-  statusLabel.className = running ? 'running' : 'paused';
 }
 
 btnPlay.addEventListener('click', () => setRunning(!running));
