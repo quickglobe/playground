@@ -15,3 +15,4 @@ This repo is a personal playground for small, self-contained projects and experi
 - Prefer vanilla HTML/CSS/JS over frameworks unless the project is specifically exploring a framework
 - No need for tests unless the project is specifically about testing something
 - Comments only when the behavior would be non-obvious
+- Do not use emoji anywhere in the site — not in HTML, JS, or CSS; use plain text labels instead
