@@ -183,13 +183,20 @@ const THEMES = {
   },
 };
 
-let currentTheme = 'dark';
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+let currentTheme = systemDark.matches ? 'dark' : 'light';
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  document.body.dataset.theme = theme === 'light' ? 'light' : '';
+  document.getElementById('btn-theme').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
 
 function toggleTheme() {
-  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.body.dataset.theme = currentTheme === 'light' ? 'light' : '';
-  document.getElementById('btn-theme').textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
 }
+
+systemDark.addEventListener('change', e => applyTheme(e.matches ? 'dark' : 'light'));
 
 let cols, rows;
 let grid, nextGrid;
@@ -515,6 +522,7 @@ window.addEventListener('resize', onResize);
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
+applyTheme(currentTheme);
 initSize();
 randomize();
 requestAnimationFrame(loop);
