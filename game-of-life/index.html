@@ -151,13 +151,13 @@
     margin: 16px;
     border-radius: 8px;
     border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   canvas {
     display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
     cursor: crosshair;
     image-rendering: pixelated;
   }
@@ -250,8 +250,8 @@ function idx(c, r) {
 function initSize() {
   const w = wrap.clientWidth;
   const h = wrap.clientHeight;
-  cols = Math.max(20, Math.floor(w / CELL));
-  rows = Math.max(20, Math.floor(h / CELL));
+  cols = Math.max(20, Math.ceil(w / CELL));
+  rows = Math.max(20, Math.ceil(h / CELL));
   canvas.width = cols * CELL;
   canvas.height = rows * CELL;
   grid = makeGrid(cols, rows);
