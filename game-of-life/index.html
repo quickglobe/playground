@@ -143,12 +143,24 @@
     white-space: nowrap;
   }
 
-  #canvas-wrap {
+  /* Stage fills the leftover space and centres the box; its padding is the
+     gap between the box and the window edge. */
+  #stage {
     flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  /* The box is sized by JS to an exact integer number of cells, so the grid
+     never overflows it (no clipped cells) and never falls short of it (no gap). */
+  #canvas-wrap {
     overflow: hidden;
     position: relative;
     touch-action: none;
-    margin: 16px;
     border-radius: 8px;
     border: 1px solid var(--border);
   }
@@ -181,12 +193,17 @@
   </div>
 </div>
 
-<div id="canvas-wrap">
-  <canvas id="canvas"></canvas>
+<div id="stage">
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
 </div>
 
 <script>
 const CELL = 14;
+const STAGE_PAD = 16;   // must match #stage padding
+const BOX_BORDER = 1;   // must match #canvas-wrap border width
+const MIN_CELLS = 8;
 const DEAD = 0, ALIVE = 1;
 
 const THEMES = {
@@ -229,6 +246,7 @@ let animId = null;
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const wrap = document.getElementById('canvas-wrap');
+const stage = document.getElementById('stage');
 const btnPlay = document.getElementById('btn-play');
 const speedSlider = document.getElementById('speed-slider');
 const speedVal = document.getElementById('speed-val');
@@ -245,12 +263,29 @@ function idx(c, r) {
 }
 
 function initSize() {
-  const w = wrap.clientWidth;
-  const h = wrap.clientHeight;
-  cols = Math.max(20, Math.ceil(w / CELL));
-  rows = Math.max(20, Math.ceil(h / CELL));
-  canvas.width = cols * CELL;
-  canvas.height = rows * CELL;
+  // Space available to the box, inside the stage padding.
+  const availW = stage.clientWidth - 2 * STAGE_PAD;
+  const availH = stage.clientHeight - 2 * STAGE_PAD;
+
+  // Largest whole number of cells whose grid fits within that space,
+  // leaving room for the box's own border on each side.
+  const maxGridW = availW - 2 * BOX_BORDER;
+  const maxGridH = availH - 2 * BOX_BORDER;
+  cols = Math.max(MIN_CELLS, Math.floor(maxGridW / CELL));
+  rows = Math.max(MIN_CELLS, Math.floor(maxGridH / CELL));
+
+  const gridW = cols * CELL;
+  const gridH = rows * CELL;
+
+  // Grid (canvas) is an exact integer multiple of CELL...
+  canvas.width = gridW;
+  canvas.height = gridH;
+
+  // ...and the box wraps it snugly: border-box width = grid + its own border,
+  // so there is never a gap or an overlap between the box and the grid.
+  wrap.style.width = (gridW + 2 * BOX_BORDER) + 'px';
+  wrap.style.height = (gridH + 2 * BOX_BORDER) + 'px';
+
   grid = makeGrid(cols, rows);
   nextGrid = makeGrid(cols, rows);
   generation = 0;
