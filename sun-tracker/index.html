@@ -334,18 +334,25 @@ body {
   pointer-events: none;
 }
 
-/* ── Full-bleed safe-area fillers ────────────────────────
-   Two fixed strips that exactly cover the top and bottom
-   safe-area insets (status bar / Dynamic Island and the home
-   indicator / browser toolbar). iOS tints each system bar from
-   the content painted in its inset, so painting these strips with
-   independent colours lets the top follow the sky and the bottom
-   follow the ground. They collapse to zero height where there are
-   no insets (e.g. desktop / landscape), so they have no effect. */
+/* ── Full-bleed safe-area tint anchors ───────────────────
+   iOS 26 Safari (Liquid Glass) ignores the theme-color meta and
+   instead tints each system bar INDEPENDENTLY from the background
+   colour of a position:fixed element nearest that edge — the top
+   status bar from a strip near the top, the bottom toolbar from a
+   strip near the bottom — falling back to the <body> background.
+   A strip only qualifies if it sits within 4px of the top / 3px of
+   the bottom, is >=80% wide, and is >=3px tall, with the colour on
+   the element itself. Two fixed strips filling the safe-area insets
+   therefore let the status bar follow the sky and the bottom bar
+   follow the ground, matching the canvas gradient (top edge p.sky,
+   bottom edge darken(p.bg)). They carry a solid colour from first
+   paint so they qualify before JS computes the live palette, and
+   collapse to zero height (no inset) on desktop / non-notched
+   devices, where they have no visible effect. */
 #safe-top, #safe-bottom {
   position: fixed;
   left: 0;
-  right: 0;
+  width: 100%;
   z-index: 100;
   pointer-events: none;
   transition: background-color 1.2s ease;
@@ -353,10 +360,12 @@ body {
 #safe-top {
   top: 0;
   height: env(safe-area-inset-top, 0px);
+  background-color: #0a0c16;
 }
 #safe-bottom {
   bottom: 0;
   height: env(safe-area-inset-bottom, 0px);
+  background-color: #05050b;
 }
 </style>
 </head>
@@ -826,21 +835,22 @@ function applyPalette(palette) {
 
   document.getElementById('location-notice').style.color = fg;
 
-  // Full bleed: tint the OS chrome to match the gradient edges so the
-  // background extends behind the status bar and the bottom toolbar.
-  // The top of the sky gradient is p.sky and its bottom is darken(p.bg, 0.32)
-  // (see drawScene), so the two safe-area strips reuse those exact colours to
-  // sit seamlessly against the canvas. A single shared colour can't match a
-  // gradient at both ends, so the top and bottom are painted independently.
+  // Full bleed: drive the OS chrome from the gradient's edge colours.
+  // The sky gradient runs from p.sky at the top to darken(p.bg, 0.32) at
+  // the bottom (see drawScene), so the two fixed safe-area strips reuse
+  // those exact colours. iOS 26 Safari samples each strip's background
+  // independently for the bar nearest it, so the status bar follows the
+  // sky and the bottom toolbar follows the ground; updating the strips
+  // here re-tints the bars as the palette shifts through the day.
   const skyTop    = p.sky || '#0a0c16';
   const groundEnd = darken(p.bg || '#070710', 0.32);
   document.getElementById('safe-top').style.backgroundColor    = skyTop;
   document.getElementById('safe-bottom').style.backgroundColor = groundEnd;
-  // Page backgrounds act as a fallback behind the strips for browsers that
-  // tint chrome from the document background rather than the painted insets.
-  document.documentElement.style.background = skyTop;
+  // <body> background is Safari's fallback when a strip can't be sampled
+  // (e.g. no safe-area inset), and tints the overscroll rubber-band.
   document.body.style.background = groundEnd;
-  // theme-color is honoured by some browsers for the top status bar only.
+  // theme-color is ignored by Safari 26 but still honoured by older iOS
+  // and Android Chrome, where it colours the top status bar.
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) themeMeta.setAttribute('content', skyTop);
 }
