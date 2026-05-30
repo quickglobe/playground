@@ -80,8 +80,11 @@
     transition: background 0.15s, color 0.15s;
     white-space: nowrap;
   }
-  button:hover { background: var(--accent); color: #fff; }
+  @media (hover: hover) {
+    button:hover { background: var(--accent); color: #fff; }
+  }
   button:active { opacity: 0.8; }
+  button.tap-flash { background: var(--accent); color: #fff; }
 
   #btn-play {
     min-width: 76px;
@@ -435,6 +438,15 @@ function onResize() {
 }
 
 window.addEventListener('resize', onResize);
+
+// ── Button tap flash (removes sticky hover on touch devices) ──────────────────
+
+document.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('touchstart', () => {
+    btn.classList.add('tap-flash');
+    setTimeout(() => btn.classList.remove('tap-flash'), 400);
+  }, { passive: true });
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
