@@ -72,7 +72,6 @@
     background: var(--btn-bg);
     color: var(--text);
     border: 1px solid var(--accent);
-    border-radius: 6px;
     padding: 0 14px;
     height: 40px;
     font-size: 0.85rem;
@@ -536,6 +535,22 @@ applyTheme(currentTheme);
 initSize();
 randomize();
 requestAnimationFrame(loop);
+</script>
+<script type="module">
+  import { generateClipPath } from 'https://esm.sh/@lisse/core@0.4.0';
+
+  function applySquircle(el, radius) {
+    function update() {
+      const { width, height } = el.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        el.style.clipPath = generateClipPath(width, height, { radius });
+      }
+    }
+    new ResizeObserver(update).observe(el);
+    update();
+  }
+
+  document.querySelectorAll('button').forEach(el => applySquircle(el, 6));
 </script>
 </body>
 </html>
