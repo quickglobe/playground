@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sun Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +45,7 @@ body {
   inset: 0;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  padding: 24px 26px;
+  padding: calc(24px + env(safe-area-inset-top)) calc(26px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(26px + env(safe-area-inset-left));
   pointer-events: none;
 }
 
@@ -55,7 +55,7 @@ body {
   position: absolute;
   inset: 0;
   grid-template-rows: auto 1fr auto;
-  padding: 36px 56px 32px;
+  padding: calc(36px + env(safe-area-inset-top)) calc(56px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(56px + env(safe-area-inset-left));
   pointer-events: none;
 }
 
