@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0d0d1f"/>
+      <stop offset="100%" stop-color="#070710"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#ffe7a8"/>
+      <stop offset="55%"  stop-color="#ffb347"/>
+      <stop offset="100%" stop-color="#ff7a1a"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="115" ry="115" fill="url(#sky)"/>
+
+  <!-- Sun rays -->
+  <g stroke="#ffb347" stroke-width="26" stroke-linecap="round">
+    <line x1="236" y1="70"  x2="236" y2="120"/>
+    <line x1="236" y1="352" x2="236" y2="402"/>
+    <line x1="70"  y1="236" x2="120" y2="236"/>
+    <line x1="352" y1="236" x2="402" y2="236"/>
+    <line x1="119" y1="119" x2="154" y2="154"/>
+    <line x1="318" y1="318" x2="353" y2="353"/>
+    <line x1="353" y1="119" x2="318" y2="154"/>
+    <line x1="154" y1="318" x2="119" y2="353"/>
+  </g>
+
+  <!-- Sun disc -->
+  <circle cx="236" cy="236" r="96" fill="url(#sun)"/>
+
+  <!-- Horizon / tracking arc -->
+  <path d="M 56 432 A 220 220 0 0 1 456 432" fill="none" stroke="#5293e5" stroke-width="20" stroke-linecap="round" opacity="0.85"/>
+</svg>
