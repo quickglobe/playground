@@ -94,25 +94,24 @@
   .meta h2 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 24px; margin: 12px 0 6px; letter-spacing: -0.01em; }
   .meta p { color: var(--muted); font-size: 14.5px; line-height: 1.5; font-weight: 500; }
 
-  /* sun preview */
-  .sun-scene { width: 100%; height: 100%; background: linear-gradient(180deg, oklch(0.85 0.1 230), oklch(0.93 0.05 210)); position: relative; }
-  html[data-theme="dark"] .sun-scene { background: linear-gradient(180deg, oklch(0.3 0.06 265), oklch(0.42 0.07 250)); }
-  @media (prefers-color-scheme: dark) { html[data-theme="auto"] .sun-scene { background: linear-gradient(180deg, oklch(0.3 0.06 265), oklch(0.42 0.07 250)); } }
-  .sun-scene .arc path { fill: none; stroke: oklch(1 0 0 / 0.5); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
+  /* sun preview — dark atmospheric style matching the actual app (always dark, no light variant) */
+  .sun-scene { width: 100%; height: 100%; background: linear-gradient(180deg, #0b0d18 0%, #3a324e 65%, #5a3a32 100%); position: relative; }
+  .sun-scene .arc path { fill: none; stroke: rgba(224,138,106,0.5); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
   .sun-body { position: absolute; width: 30px; height: 30px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, oklch(0.97 0.1 92), oklch(0.83 0.17 68));
-    box-shadow: 0 0 20px 5px oklch(0.86 0.16 75 / 0.8);
+    background: #e08a6a;
+    box-shadow: 0 0 16px 6px rgba(224,138,106,0.7);
     offset-path: path('M 18 152 A 124 116 0 0 1 262 152'); animation: travel 7s ease-in-out infinite alternate; }
   @keyframes travel { from{ offset-distance: 2%; } to{ offset-distance: 98%; } }
-  .horizon { position: absolute; left:0; right:0; bottom:0; height: 38px; background: linear-gradient(180deg, transparent, oklch(0.5 0.1 165 / 0.6)); }
+  .horizon { position: absolute; left:0; right:0; bottom:0; height: 38px; background: linear-gradient(180deg, transparent, rgba(10,6,4,0.9)); }
 
-  /* life preview */
-  .life-scene { width: 100%; height: 100%; display: block; background: oklch(0.17 0.03 255); }
+  /* life preview — matches app's #1a1a2e bg + #e94560 cell accent */
+  .life-scene { width: 100%; height: 100%; display: block; background: #1a1a2e; }
 
   footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
   footer a { color: var(--text); text-decoration: none; padding: 6px 12px; border: 2px solid var(--card-brd); border-radius: 999px; background: var(--surface); box-shadow: 3px 3px 0 var(--shadow-col); transition: transform 0.15s, box-shadow 0.15s; }
   footer a:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow-col); }
 </style>
+<script>(function(){var s=localStorage.getItem("pg-theme");if(s)document.documentElement.setAttribute("data-theme",s);})();</script>
 </head>
 <body>
 <div class="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
@@ -164,16 +163,20 @@
         for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ if(dx||dy) n+=grid[(y+dy+rows)%rows][(x+dx+cols)%cols]; }
         const v=(n===3||(s&&n===2))?1:0; alive+=v; return v; }));
       grid = next; if (alive < cols*rows*0.04) grid = seed();
-      const c = getComputedStyle(document.documentElement).getPropertyValue("--teal").trim() || "#5ec8c8";
-      ctx.clearRect(0,0,W,H); ctx.fillStyle = c;
-      for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.beginPath(); ctx.roundRect(x*cell+1.5, y*cell+1.5, cell-3, cell-3, 3); ctx.fill(); }
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle = 'rgba(15,52,96,0.6)'; ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      for(let x=0;x<=cols;x++){ ctx.moveTo(x*cell,0); ctx.lineTo(x*cell,H); }
+      for(let y=0;y<=rows;y++){ ctx.moveTo(0,y*cell); ctx.lineTo(W,y*cell); }
+      ctx.stroke();
+      ctx.fillStyle = '#e94560';
+      for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.fillRect(x*cell+0.5, y*cell+0.5, cell-1, cell-1); }
     }
     step(); setInterval(step, 380);
   }
   document.querySelectorAll(".life-scene").forEach(startLife);
 
   const root = document.documentElement, btn = document.getElementById("themeBtn");
-  const saved = localStorage.getItem("pg-theme"); if (saved) root.setAttribute("data-theme", saved);
   btn.addEventListener("click", () => {
     const order = ["auto","light","dark"], cur = root.getAttribute("data-theme") || "auto";
     const next = order[(order.indexOf(cur)+1)%order.length];
