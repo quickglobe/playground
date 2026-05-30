@@ -333,9 +333,37 @@ body {
   transform: translateY(8px);
   pointer-events: none;
 }
+
+/* ── Full-bleed safe-area fillers ────────────────────────
+   Two fixed strips that exactly cover the top and bottom
+   safe-area insets (status bar / Dynamic Island and the home
+   indicator / browser toolbar). iOS tints each system bar from
+   the content painted in its inset, so painting these strips with
+   independent colours lets the top follow the sky and the bottom
+   follow the ground. They collapse to zero height where there are
+   no insets (e.g. desktop / landscape), so they have no effect. */
+#safe-top, #safe-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  pointer-events: none;
+  transition: background-color 1.2s ease;
+}
+#safe-top {
+  top: 0;
+  height: env(safe-area-inset-top, 0px);
+}
+#safe-bottom {
+  bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+}
 </style>
 </head>
 <body>
+
+<div id="safe-top"></div>
+<div id="safe-bottom"></div>
 
 <div id="root">
   <canvas id="sky"></canvas>
@@ -799,13 +827,20 @@ function applyPalette(palette) {
   document.getElementById('location-notice').style.color = fg;
 
   // Full bleed: tint the OS chrome to match the gradient edges so the
-  // background extends behind the status bar and Safari toolbar.
-  // Top status bar follows the sky color; bottom toolbar follows the ground.
+  // background extends behind the status bar and the bottom toolbar.
+  // The top of the sky gradient is p.sky and its bottom is darken(p.bg, 0.32)
+  // (see drawScene), so the two safe-area strips reuse those exact colours to
+  // sit seamlessly against the canvas. A single shared colour can't match a
+  // gradient at both ends, so the top and bottom are painted independently.
   const skyTop    = p.sky || '#0a0c16';
   const groundEnd = darken(p.bg || '#070710', 0.32);
-  // html background = top safe-area (status bar); body background = bottom safe-area (Safari toolbar)
+  document.getElementById('safe-top').style.backgroundColor    = skyTop;
+  document.getElementById('safe-bottom').style.backgroundColor = groundEnd;
+  // Page backgrounds act as a fallback behind the strips for browsers that
+  // tint chrome from the document background rather than the painted insets.
   document.documentElement.style.background = skyTop;
   document.body.style.background = groundEnd;
+  // theme-color is honoured by some browsers for the top status bar only.
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) themeMeta.setAttribute('content', skyTop);
 }
