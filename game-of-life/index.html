@@ -145,6 +145,9 @@
     overflow: hidden;
     position: relative;
     touch-action: none;
+    margin: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
   }
 
   canvas {
@@ -219,8 +222,6 @@ let frameInterval = 1000 / 10;
 let lastFrameTime = 0;
 let animId = null;
 
-let scale = 1;
-let panX = 0, panY = 0;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -249,7 +250,6 @@ function initSize() {
   rows = Math.max(20, Math.ceil(h / CELL) + 4);
   grid = makeGrid(cols, rows);
   nextGrid = makeGrid(cols, rows);
-  panX = 0; panY = 0; scale = 1;
   generation = 0;
   updateGen();
 }
@@ -298,39 +298,27 @@ function draw() {
   ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, w, h);
 
-  const cs = CELL * scale;
-
   ctx.fillStyle = palette.cell;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (grid[idx(c, r)] === ALIVE) {
-        const sx = panX + c * cs;
-        const sy = panY + r * cs;
-        if (sx + cs < 0 || sy + cs < 0 || sx > w || sy > h) continue;
-        ctx.fillRect(Math.floor(sx), Math.floor(sy), Math.ceil(cs), Math.ceil(cs));
+        ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
       }
     }
   }
 
-  if (cs >= 6) {
-    ctx.strokeStyle = palette.grid;
-    ctx.lineWidth = 1;
-    const startC = Math.max(0, Math.floor(-panX / cs));
-    const endC   = Math.min(cols, Math.ceil((w - panX) / cs));
-    const startR = Math.max(0, Math.floor(-panY / cs));
-    const endR   = Math.min(rows, Math.ceil((h - panY) / cs));
-
-    ctx.beginPath();
-    for (let c = startC; c <= endC; c++) {
-      const x = Math.round(panX + c * cs) + 0.5;
-      ctx.moveTo(x, 0); ctx.lineTo(x, h);
-    }
-    for (let r = startR; r <= endR; r++) {
-      const y = Math.round(panY + r * cs) + 0.5;
-      ctx.moveTo(0, y); ctx.lineTo(w, y);
-    }
-    ctx.stroke();
+  ctx.strokeStyle = palette.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let c = 0; c <= cols; c++) {
+    const x = c * CELL + 0.5;
+    ctx.moveTo(x, 0); ctx.lineTo(x, h);
   }
+  for (let r = 0; r <= rows; r++) {
+    const y = r * CELL + 0.5;
+    ctx.moveTo(0, y); ctx.lineTo(w, y);
+  }
+  ctx.stroke();
 }
 
 // ── Animation loop ─────────────────────────────────────────────────────────────
@@ -376,10 +364,7 @@ document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 // ── Screen → cell coords ───────────────────────────────────────────────────────
 
 function screenToCell(sx, sy) {
-  const cs = CELL * scale;
-  const c = Math.floor((sx - panX) / cs);
-  const r = Math.floor((sy - panY) / cs);
-  return { c, r };
+  return { c: Math.floor(sx / CELL), r: Math.floor(sy / CELL) };
 }
 
 function cellInBounds(c, r) {
@@ -408,116 +393,37 @@ canvas.addEventListener('mousemove', e => {
 
 window.addEventListener('mouseup', () => { drawMode = null; });
 
-canvas.addEventListener('wheel', e => {
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  const factor = e.deltaY < 0 ? 1.1 : 0.9;
-  const newScale = Math.max(0.3, Math.min(8, scale * factor));
-  panX = mx - (mx - panX) * (newScale / scale);
-  panY = my - (my - panY) * (newScale / scale);
-  scale = newScale;
-}, { passive: false });
-
 // ── Touch input ───────────────────────────────────────────────────────────────
 
-let touches = {};
-let lastPinchDist = null;
-let lastPinchMid = null;
 let touchDrawMode = null;
-let touchMoved = false;
 
 function getTouchPos(t) {
   const rect = canvas.getBoundingClientRect();
   return { x: t.clientX - rect.left, y: t.clientY - rect.top };
 }
 
-function pinchDist(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function pinchMid(a, b) {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-}
-
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
-  for (const t of e.changedTouches) {
-    touches[t.identifier] = getTouchPos(t);
-  }
-  touchMoved = false;
-
-  const ids = Object.keys(touches);
-  if (ids.length === 2) {
-    const a = touches[ids[0]], b = touches[ids[1]];
-    lastPinchDist = pinchDist(a, b);
-    lastPinchMid  = pinchMid(a, b);
-    touchDrawMode = null;
-  } else if (ids.length === 1 && !running) {
-    const pos = touches[ids[0]];
-    const { c, r } = screenToCell(pos.x, pos.y);
-    if (cellInBounds(c, r)) {
-      touchDrawMode = grid[idx(c, r)] === ALIVE ? DEAD : ALIVE;
-    }
+  if (running || e.touches.length !== 1) return;
+  const pos = getTouchPos(e.touches[0]);
+  const { c, r } = screenToCell(pos.x, pos.y);
+  if (cellInBounds(c, r)) {
+    touchDrawMode = grid[idx(c, r)] === ALIVE ? DEAD : ALIVE;
+    grid[idx(c, r)] = touchDrawMode;
   }
 }, { passive: false });
 
 canvas.addEventListener('touchmove', e => {
   e.preventDefault();
-  const prevTouches = { ...touches };
-  for (const t of e.changedTouches) {
-    touches[t.identifier] = getTouchPos(t);
-  }
-  touchMoved = true;
-
-  const ids = Object.keys(touches);
-  if (ids.length === 2) {
-    const a = touches[ids[0]], b = touches[ids[1]];
-    const dist = pinchDist(a, b);
-    const mid  = pinchMid(a, b);
-
-    if (lastPinchDist !== null) {
-      const factor = dist / lastPinchDist;
-      const newScale = Math.max(0.3, Math.min(8, scale * factor));
-      panX = mid.x - (mid.x - panX) * (newScale / scale);
-      panY = mid.y - (mid.y - panY) * (newScale / scale);
-      scale = newScale;
-
-      panX += mid.x - lastPinchMid.x;
-      panY += mid.y - lastPinchMid.y;
-    }
-    lastPinchDist = dist;
-    lastPinchMid  = mid;
-
-  } else if (ids.length === 1) {
-    const id = ids[0];
-    const prev = prevTouches[id];
-    const curr = touches[id];
-
-    if (running || touchDrawMode === null) {
-      panX += curr.x - prev.x;
-      panY += curr.y - prev.y;
-    } else {
-      const { c, r } = screenToCell(curr.x, curr.y);
-      if (cellInBounds(c, r)) grid[idx(c, r)] = touchDrawMode;
-    }
-  }
+  if (running || touchDrawMode === null || e.touches.length !== 1) return;
+  const pos = getTouchPos(e.touches[0]);
+  const { c, r } = screenToCell(pos.x, pos.y);
+  if (cellInBounds(c, r)) grid[idx(c, r)] = touchDrawMode;
 }, { passive: false });
 
 canvas.addEventListener('touchend', e => {
   e.preventDefault();
-  for (const t of e.changedTouches) {
-    delete touches[t.identifier];
-  }
-  const ids = Object.keys(touches);
-  if (ids.length < 2) {
-    lastPinchDist = null;
-    lastPinchMid  = null;
-  }
-  if (ids.length === 0) {
-    touchDrawMode = null;
-  }
+  touchDrawMode = null;
 }, { passive: false });
 
 // ── Resize ─────────────────────────────────────────────────────────────────────
