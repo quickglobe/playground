@@ -76,7 +76,7 @@
   .brand p { font-size: clamp(15px,2.5vw,18px); color: var(--muted); margin-top: 16px; font-weight: 500; }
 
   .toggle {
-    flex-shrink: 0; width: 60px; height: 60px; cursor: pointer;
+    flex-shrink: 0; width: 60px; height: 60px; border-radius: 20px; cursor: pointer;
     background: var(--surface); border: 3px solid var(--card-brd); filter: drop-shadow(4px 4px 0 var(--shadow-col));
     display: grid; place-items: center; color: var(--text); transition: transform 0.18s, filter 0.18s;
   }
@@ -89,14 +89,14 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: clamp(20px,3.5vw,30px); }
   .card {
     text-decoration: none; color: inherit; background: var(--surface);
-    border: 3px solid var(--card-brd); padding: 14px;
+    border: 3px solid var(--card-brd); border-radius: 26px; padding: 14px;
     filter: drop-shadow(6px 6px 0 var(--shadow-col)); position: relative;
     transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), filter 0.22s;
   }
   .card:hover { transform: translate(-4px,-4px) rotate(-0.6deg); filter: drop-shadow(12px 12px 0 var(--shadow-col)); }
   .card:active { transform: translate(2px,2px); filter: drop-shadow(3px 3px 0 var(--shadow-col)); }
   .card:focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; }
-  .preview { height: 172px; overflow: hidden; position: relative; border: 3px solid var(--card-brd); }
+  .preview { height: 172px; border-radius: 18px; overflow: hidden; position: relative; border: 3px solid var(--card-brd); }
   .meta { padding: 16px 8px 8px; }
   .chip { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 11px; border-radius: 999px; border: 2px solid var(--card-brd); }
   .c-teal { background: var(--teal-soft); color: var(--text); }
