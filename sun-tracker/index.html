@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070710">
 <title>Sun Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -796,6 +797,16 @@ function applyPalette(palette) {
   document.getElementById('l-bottom').style.borderColor = ruleC;
 
   document.getElementById('location-notice').style.color = fg;
+
+  // Full bleed: tint the OS chrome to match the gradient edges so the
+  // background extends behind the status bar and Safari toolbar.
+  // Top status bar follows the sky color; bottom toolbar follows the ground.
+  const skyTop    = p.sky || '#0a0c16';
+  const groundEnd = darken(p.bg || '#070710', 0.32);
+  document.documentElement.style.background = groundEnd;
+  document.body.style.background = groundEnd;
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) themeMeta.setAttribute('content', skyTop);
 }
 
 // ── State ─────────────────────────────────────────────────────────────
