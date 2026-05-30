@@ -6,7 +6,7 @@
 <title>Sun Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -17,15 +17,13 @@ html, body {
 
 body {
   background: #070710;
-  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-family: 'Spectral', 'Source Serif Pro', Georgia, serif;
   font-feature-settings: 'tnum' 1;
-  letter-spacing: -0.005em;
   -webkit-user-select: none;
   user-select: none;
   touch-action: none;
 }
 
-/* ── Root ─────────────────────────────────────────────── */
 #root {
   position: relative;
   width: 100%;
@@ -33,7 +31,6 @@ body {
   overflow: hidden;
 }
 
-/* ── Canvas (full-bleed sky) ──────────────────────────── */
 #sky {
   position: absolute;
   inset: 0;
@@ -42,124 +39,126 @@ body {
   display: block;
 }
 
-/* ── Overlay ──────────────────────────────────────────── */
-#overlay {
+/* ── Portrait overlay (default) ─────────────────────── */
+#overlay-portrait {
   position: absolute;
   inset: 0;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  padding: clamp(18px, 4vw, 28px) clamp(20px, 5vw, 32px) clamp(20px, 4vw, 28px);
+  padding: 24px 26px;
   pointer-events: none;
 }
 
-/* ── Top row: clock + date ────────────────────────────── */
-#top {
+/* ── Landscape overlay (hidden by default) ──────────── */
+#overlay-landscape {
+  display: none;
+  position: absolute;
+  inset: 0;
+  grid-template-rows: auto 1fr auto;
+  padding: 36px 56px 32px;
+  pointer-events: none;
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+  #overlay-portrait  { display: none; }
+  #overlay-landscape { display: grid; }
+}
+
+/* ── Portrait: Top bar ───────────────────────────────── */
+.hyb-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: baseline;
   gap: 12px;
 }
 
-#clock {
-  font-size: clamp(16px, 4vw, 20px);
+.hyb-clock {
+  font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
   transition: color 1.2s ease;
 }
 
-#date-group {
-  text-align: right;
-}
-
-#date {
-  font-size: clamp(10px, 2.5vw, 12px);
+.hyb-date {
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 500;
   transition: color 1.2s ease;
 }
 
-#location-display {
-  font-size: clamp(9px, 2vw, 11px);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 400;
-  margin-top: 4px;
-  opacity: 0.55;
-  transition: color 1.2s ease;
-}
-
-/* ── Hero: Daylight today ─────────────────────────────── */
-#hero {
+/* ── Portrait: Hero ──────────────────────────────────── */
+.hyb-hero {
   align-self: start;
-  margin-top: clamp(14px, 3vh, 22px);
+  margin-top: 18px;
 }
 
-#hero-label {
-  font-size: clamp(9px, 2vw, 11px);
+.hyb-hero-label {
+  font-size: 10px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   font-weight: 500;
-  margin-bottom: clamp(4px, 1vh, 8px);
+  margin-bottom: 6px;
   transition: color 1.2s ease;
 }
 
-#hero-num {
+.hyb-hero-num {
   display: flex;
   align-items: baseline;
   gap: 2px;
   line-height: 0.85;
   letter-spacing: -0.05em;
   font-weight: 500;
+  transition: opacity 0.8s ease, transform 0.8s ease;
 }
 
-.hero-h, .hero-m {
-  font-size: clamp(52px, 16vw, 80px);
+.hyb-hero-h, .hyb-hero-m {
+  font-size: 74px;
   font-variant-numeric: tabular-nums;
   transition: color 1.2s ease;
 }
 
-.hero-unit {
-  font-size: clamp(16px, 5vw, 24px);
+.hyb-hero-unit {
+  font-size: 22px;
   font-weight: 400;
-  margin-right: clamp(5px, 1.5vw, 10px);
+  margin-right: 8px;
   transition: color 1.2s ease;
 }
 
-/* ── Bottom stats ─────────────────────────────────────── */
-#bottom {
+/* ── Portrait: Bottom stats ──────────────────────────── */
+.hyb-bottom {
   align-self: end;
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 2.5vh, 16px);
+  gap: 14px;
+  transition: opacity 0.8s ease, transform 0.8s ease;
 }
 
-.stat-row {
+.hyb-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   align-items: end;
 }
 
-.stat-row + .stat-row {
-  padding-top: clamp(10px, 2.5vh, 16px);
+.hyb-row + .hyb-row {
+  padding-top: 14px;
   border-top: 1px solid;
 }
 
-.stat-cell { }
-.stat-cell-mid { text-align: center; }
-.stat-cell-end { text-align: right; }
+.hyb-cell-mid { text-align: center; }
+.hyb-cell-end { text-align: right; }
 
-.stat-label {
-  font-size: clamp(8px, 2vw, 10px);
+.hyb-cell-label {
+  font-size: 9.5px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 500;
   transition: color 1.2s ease;
 }
 
-.stat-val {
-  font-size: clamp(17px, 4.5vw, 22px);
+.hyb-cell-val {
+  font-size: 22px;
   font-weight: 400;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -167,11 +166,148 @@ body {
   transition: color 1.2s ease;
 }
 
-.stat-val-sm {
-  font-size: clamp(12px, 3vw, 15px);
+.hyb-cell-val-sm {
+  font-size: 15px;
 }
 
-/* ── Location notice ──────────────────────────────────── */
+/* ── Landscape: Top bar ──────────────────────────────── */
+.hyw-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.hyw-clock {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transition: color 1.2s ease;
+}
+
+.hyw-top-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hyw-phase {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  transition: color 1.2s ease;
+}
+
+.hyw-date {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+  transition: color 1.2s ease;
+}
+
+/* ── Landscape: Hero ─────────────────────────────────── */
+.hyw-hero {
+  align-self: start;
+  margin-top: 32px;
+  max-width: 50%;
+}
+
+.hyw-hero-label {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 10px;
+  transition: color 1.2s ease;
+}
+
+.hyw-hero-num {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.hyw-hero-h, .hyw-hero-m {
+  font-size: 120px;
+  font-variant-numeric: tabular-nums;
+  transition: color 1.2s ease;
+}
+
+.hyw-hero-unit {
+  font-size: 32px;
+  font-weight: 400;
+  margin-right: 14px;
+  transition: color 1.2s ease;
+}
+
+.hyw-hero-delta {
+  margin-top: 22px;
+}
+
+.hyw-delta-head {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 6px;
+  transition: color 1.2s ease;
+}
+
+.hyw-delta-val {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  transition: color 1.2s ease;
+}
+
+/* ── Landscape: Bottom stats ─────────────────────────── */
+.hyw-bottom {
+  align-self: end;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  padding-top: 18px;
+  border-top: 1px solid;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.hyw-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.hyw-cell-label {
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 500;
+  transition: color 1.2s ease;
+}
+
+.hyw-cell-val {
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  transition: color 1.2s ease;
+}
+
+.hyw-cell-primary .hyw-cell-val {
+  font-size: 28px;
+  font-weight: 500;
+}
+
+/* ── Location notice ─────────────────────────────────── */
 #location-notice {
   position: absolute;
   bottom: 0;
@@ -187,57 +323,7 @@ body {
   pointer-events: none;
 }
 
-/* ── Loading / pre-location state ────────────────── */
-#locating-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: clamp(9px, 2vw, 11px);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-weight: 500;
-  opacity: 0.55;
-  color: inherit;
-}
-
-.locating-dots {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.locating-dots span {
-  display: block;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.2;
-  animation: dot-pulse 1.4s ease-in-out infinite;
-}
-.locating-dots span:nth-child(2) { animation-delay: 0.2s; }
-.locating-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dot-pulse {
-  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-  40%            { opacity: 0.9; transform: scale(1.2); }
-}
-
-/* placeholder shimmer while no data */
-.ph {
-  animation: ph-pulse 2s ease-in-out infinite;
-  display: inline-block;
-}
-
-@keyframes ph-pulse {
-  0%, 100% { opacity: 0.3; }
-  50%       { opacity: 0.65; }
-}
-
-/* ── Data reveal transition ───────────────────────── */
-#hero-num, #bottom {
-  transition: opacity 0.8s ease, transform 0.8s ease;
-}
-
+/* ── Data reveal ─────────────────────────────────────── */
 .data-hidden {
   opacity: 0 !important;
   transform: translateY(8px);
@@ -250,53 +336,93 @@ body {
 <div id="root">
   <canvas id="sky"></canvas>
 
-  <div id="overlay">
-    <div id="top">
-      <div id="clock">--:--:--</div>
-      <div id="date-group">
-        <div id="date"></div>
-        <div id="location-display">
-          <span id="locating-badge">Locating<span class="locating-dots"><span></span><span></span><span></span></span></span>
-        </div>
+  <!-- Portrait / mobile overlay -->
+  <div id="overlay-portrait">
+    <div class="hyb-top">
+      <div class="hyb-clock" id="p-clock">--:--</div>
+      <div class="hyb-date" id="p-date"></div>
+    </div>
+
+    <div class="hyb-hero">
+      <div class="hyb-hero-label" id="p-hero-label">Daylight today</div>
+      <div class="hyb-hero-num data-hidden" id="p-hero-num">
+        <span class="hyb-hero-h" id="p-hero-h">--</span><span class="hyb-hero-unit" id="p-unit-h">h</span><span class="hyb-hero-m" id="p-hero-m">--</span><span class="hyb-hero-unit" id="p-unit-m">m</span>
       </div>
     </div>
 
-    <div id="hero">
-      <div id="hero-label">Daylight today</div>
-      <div id="hero-num" class="data-hidden">
-        <span class="hero-h ph" id="hero-h">--</span><span class="hero-unit ph" id="hero-unit-h">h</span><span class="hero-m ph" id="hero-m">--</span><span class="hero-unit ph" id="hero-unit-m">m</span>
+    <div class="hyb-bottom data-hidden" id="p-bottom">
+      <div class="hyb-row">
+        <div class="hyb-cell">
+          <div class="hyb-cell-label">Sunrise</div>
+          <div class="hyb-cell-val" id="p-sunrise">--:--</div>
+        </div>
+        <div class="hyb-cell hyb-cell-mid">
+          <div class="hyb-cell-label">Solar noon</div>
+          <div class="hyb-cell-val" id="p-noon">--:--</div>
+        </div>
+        <div class="hyb-cell hyb-cell-end">
+          <div class="hyb-cell-label">Sunset</div>
+          <div class="hyb-cell-val" id="p-sunset">--:--</div>
+        </div>
+      </div>
+      <div class="hyb-row" id="p-row2">
+        <div class="hyb-cell">
+          <div class="hyb-cell-label">Civil dawn</div>
+          <div class="hyb-cell-val hyb-cell-val-sm" id="p-civil-dawn">--:--</div>
+        </div>
+        <div class="hyb-cell hyb-cell-mid">
+          <div class="hyb-cell-label" id="p-delta-label">Time gained</div>
+          <div class="hyb-cell-val hyb-cell-val-sm" id="p-delta">--</div>
+        </div>
+        <div class="hyb-cell hyb-cell-end">
+          <div class="hyb-cell-label">Civil dusk</div>
+          <div class="hyb-cell-val hyb-cell-val-sm" id="p-civil-dusk">--:--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Landscape / desktop overlay -->
+  <div id="overlay-landscape">
+    <div class="hyw-top">
+      <div class="hyw-clock" id="l-clock">--:--</div>
+      <div class="hyw-top-right">
+        <div class="hyw-phase" id="l-phase"></div>
+        <div class="hyw-date" id="l-date"></div>
       </div>
     </div>
 
-    <div id="bottom" class="data-hidden">
-      <div class="stat-row" id="row-primary">
-        <div class="stat-cell">
-          <div class="stat-label" id="lbl-sunrise">Sunrise</div>
-          <div class="stat-val" id="val-sunrise">--:--</div>
-        </div>
-        <div class="stat-cell stat-cell-mid">
-          <div class="stat-label" id="lbl-noon">Solar noon</div>
-          <div class="stat-val" id="val-noon">--:--</div>
-        </div>
-        <div class="stat-cell stat-cell-end">
-          <div class="stat-label" id="lbl-sunset">Sunset</div>
-          <div class="stat-val" id="val-sunset">--:--</div>
-        </div>
+    <div class="hyw-hero">
+      <div class="hyw-hero-label" id="l-hero-label">Daylight today</div>
+      <div class="hyw-hero-num data-hidden" id="l-hero-num">
+        <span class="hyw-hero-h" id="l-hero-h">--</span><span class="hyw-hero-unit" id="l-unit-h">h</span><span class="hyw-hero-m" id="l-hero-m">--</span><span class="hyw-hero-unit" id="l-unit-m">m</span>
       </div>
+      <div class="hyw-hero-delta data-hidden" id="l-delta-block">
+        <div class="hyw-delta-head" id="l-delta-head">Gaining</div>
+        <div class="hyw-delta-val" id="l-delta-val">--</div>
+      </div>
+    </div>
 
-      <div class="stat-row" id="row-secondary">
-        <div class="stat-cell">
-          <div class="stat-label" id="lbl-civil-dawn">Civil dawn</div>
-          <div class="stat-val stat-val-sm" id="val-civil-dawn">--:--</div>
-        </div>
-        <div class="stat-cell stat-cell-mid">
-          <div class="stat-label" id="lbl-delta">Time gained</div>
-          <div class="stat-val stat-val-sm" id="val-delta">--</div>
-        </div>
-        <div class="stat-cell stat-cell-end">
-          <div class="stat-label" id="lbl-civil-dusk">Civil dusk</div>
-          <div class="stat-val stat-val-sm" id="val-civil-dusk">--:--</div>
-        </div>
+    <div class="hyw-bottom data-hidden" id="l-bottom">
+      <div class="hyw-cell">
+        <div class="hyw-cell-label">Civil dawn</div>
+        <div class="hyw-cell-val" id="l-civil-dawn">--:--</div>
+      </div>
+      <div class="hyw-cell hyw-cell-primary">
+        <div class="hyw-cell-label">Sunrise</div>
+        <div class="hyw-cell-val" id="l-sunrise">--:--</div>
+      </div>
+      <div class="hyw-cell hyw-cell-primary">
+        <div class="hyw-cell-label">Solar noon</div>
+        <div class="hyw-cell-val" id="l-noon">--:--</div>
+      </div>
+      <div class="hyw-cell hyw-cell-primary">
+        <div class="hyw-cell-label">Sunset</div>
+        <div class="hyw-cell-val" id="l-sunset">--:--</div>
+      </div>
+      <div class="hyw-cell">
+        <div class="hyw-cell-label">Civil dusk</div>
+        <div class="hyw-cell-val" id="l-civil-dusk">--:--</div>
       </div>
     </div>
   </div>
@@ -414,6 +540,13 @@ function fmtClock(m) {
   return `${h % 12 || 12}:${String(mn).padStart(2, '0')} ${ampm}`;
 }
 
+function fmtClock24(m) {
+  if (m == null || !isFinite(m)) return '--:--';
+  const mins = ((Math.round(m) % 1440) + 1440) % 1440;
+  const h = Math.floor(mins / 60), mn = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(mn).padStart(2, '0')}`;
+}
+
 function fmtDuration(mins) {
   if (mins == null || !isFinite(mins)) return '--';
   const m = Math.abs(mins);
@@ -422,7 +555,26 @@ function fmtDuration(mins) {
   return `${h}h ${String(mn).padStart(2,'0')}m`;
 }
 
-// ── Time-reactive palette ────────────────────────────────────────────
+function fmtDelta(mins) {
+  if (mins == null || !isFinite(mins)) return '--';
+  const sign = mins >= 0 ? '+' : '−';
+  const m = Math.abs(mins);
+  const wholeM = Math.floor(m);
+  const sec = Math.round((m - wholeM) * 60);
+  return `${sign}${wholeM}m ${String(sec).padStart(2,'0')}s`;
+}
+
+function phaseLabel(alt, isAfterNoon) {
+  if (alt > 50)  return 'High noon';
+  if (alt > 12)  return isAfterNoon ? 'Afternoon' : 'Morning';
+  if (alt > 0)   return isAfterNoon ? 'Late afternoon' : 'Early morning';
+  if (alt > -6)  return isAfterNoon ? 'Civil dusk' : 'Civil dawn';
+  if (alt > -12) return isAfterNoon ? 'Nautical dusk' : 'Nautical dawn';
+  if (alt > -18) return isAfterNoon ? 'Astronomical dusk' : 'Astronomical dawn';
+  return 'Night';
+}
+
+// ── Reactive palette ─────────────────────────────────────────────────
 function lerpHex(h1, h2, t) {
   const p = (h, o) => parseInt(h.slice(o, o + 2), 16);
   const r = Math.round(p(h1,1) + (p(h2,1) - p(h1,1)) * t);
@@ -433,15 +585,15 @@ function lerpHex(h1, h2, t) {
 
 function paletteForAltitude(alt) {
   const stops = [
-    { a: -90, p: { bg:'#070710', sky:'#0a0c16', horizon:'#101426', ink:'#cdd0e0', dim:'#52576b', accent:'#5b6f9c' } },
-    { a: -18, p: { bg:'#0b0d18', sky:'#13182a', horizon:'#1a2138', ink:'#d4d8e6', dim:'#5e6378', accent:'#7a8fbf' } },
-    { a: -12, p: { bg:'#161628', sky:'#1f2540', horizon:'#2c3658', ink:'#dfe1ec', dim:'#6c7186', accent:'#9eb0d8' } },
-    { a:  -6, p: { bg:'#2a2236', sky:'#3a324e', horizon:'#603d4e', ink:'#ece7df', dim:'#86798a', accent:'#e08a6a' } },
-    { a:-0.5, p: { bg:'#5a3a32', sky:'#85513a', horizon:'#c4753a', ink:'#fff3e2', dim:'#a08474', accent:'#ff8e3c' } },
-    { a:   6, p: { bg:'#c08254', sky:'#e8a574', horizon:'#ffc88a', ink:'#3a2418', dim:'#7a513a', accent:'#ff7a2a' } },
-    { a:  20, p: { bg:'#dcc4a0', sky:'#a7c8e3', horizon:'#e3d6b9', ink:'#1d1a14', dim:'#6a6356', accent:'#d97a2a' } },
-    { a:  45, p: { bg:'#e8e2d2', sky:'#7eb4dc', horizon:'#ddd6c4', ink:'#15140f', dim:'#5e5848', accent:'#c66a1f' } },
-    { a:  60, p: { bg:'#e9e3d2', sky:'#5fa3d2', horizon:'#dfd8c6', ink:'#13120e', dim:'#5a5444', accent:'#b85e18' } },
+    { a: -90,  p: { bg:'#070710', sky:'#0a0c16', horizon:'#101426', ink:'#cdd0e0', dim:'#52576b', accent:'#5b6f9c' } },
+    { a: -18,  p: { bg:'#0b0d18', sky:'#13182a', horizon:'#1a2138', ink:'#d4d8e6', dim:'#5e6378', accent:'#7a8fbf' } },
+    { a: -12,  p: { bg:'#161628', sky:'#1f2540', horizon:'#2c3658', ink:'#dfe1ec', dim:'#6c7186', accent:'#9eb0d8' } },
+    { a:  -6,  p: { bg:'#2a2236', sky:'#3a324e', horizon:'#603d4e', ink:'#ece7df', dim:'#86798a', accent:'#e08a6a' } },
+    { a: -0.5, p: { bg:'#5a3a32', sky:'#85513a', horizon:'#c4753a', ink:'#fff3e2', dim:'#a08474', accent:'#ff8e3c' } },
+    { a:   6,  p: { bg:'#c08254', sky:'#e8a574', horizon:'#ffc88a', ink:'#3a2418', dim:'#7a513a', accent:'#ff7a2a' } },
+    { a:  20,  p: { bg:'#dcc4a0', sky:'#a7c8e3', horizon:'#e3d6b9', ink:'#1d1a14', dim:'#6a6356', accent:'#d97a2a' } },
+    { a:  45,  p: { bg:'#e8e2d2', sky:'#7eb4dc', horizon:'#ddd6c4', ink:'#15140f', dim:'#5e5848', accent:'#c66a1f' } },
+    { a:  60,  p: { bg:'#e9e3d2', sky:'#5fa3d2', horizon:'#dfd8c6', ink:'#13120e', dim:'#5a5444', accent:'#b85e18' } },
   ];
   if (alt <= stops[0].a) return { ...stops[0].p, alt };
   if (alt >= stops[stops.length-1].a) return { ...stops[stops.length-1].p, alt };
@@ -494,8 +646,7 @@ function mixColor(h1, h2, t) {
   return `rgb(${r},${g},${b})`;
 }
 
-// ── 24h hybrid arc point ──────────────────────────────────────────────
-// Continuous cosine curve — sun passes underground at night, rises at sunrise.
+// ── 24h arc point ─────────────────────────────────────────────────────
 function hybridArcPoint(minOfDay, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin) {
   const x = (minOfDay / 1440) * W;
   const daylight = (sunsetMin - sunriseMin) / 60;
@@ -530,7 +681,7 @@ function drawScene(W, H, palette, today, nowMin, pos) {
   const topPadding = H * 0.42;
   const peakH      = horizonY - topPadding;
 
-  // Full-bleed sky → ground gradient
+  // Sky-to-ground gradient
   const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
   skyGrad.addColorStop(0, p.sky);
   skyGrad.addColorStop((horizonY / H) * 0.92, p.horizon);
@@ -554,66 +705,46 @@ function drawScene(W, H, palette, today, nowMin, pos) {
   const sunsetMin    = t.sunset    != null ? t.sunset    : 1080;
   const solarNoonMin = t.solarNoon != null ? t.solarNoon : 720;
 
-  // Horizon line (drawn under curve)
+  // Horizon line
   ctx.strokeStyle = 'rgba(0,0,0,0.28)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, horizonY); ctx.lineTo(W, horizonY); ctx.stroke();
 
   // 24h sun curve
-  const samples = 240;
-  ctx.strokeStyle = hexA(accent, 0.5);
+  ctx.strokeStyle = hexA(accent, 0.55);
   ctx.lineWidth = 1.5;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  for (let i = 0; i <= samples; i++) {
-    const m = (i / samples) * 1440;
+  for (let i = 0; i <= 240; i++) {
+    const m = (i / 240) * 1440;
     const pt = hybridArcPoint(m, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
     i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
   }
   ctx.stroke();
 
-  // Sunrise / sunset horizon markers
+  // Sunrise / sunset tick markers
   for (const m of [sunriseMin, sunsetMin]) {
     const pt = hybridArcPoint(m, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
-    ctx.strokeStyle = hexA(accent, 0.65);
+    ctx.strokeStyle = hexA(accent, 0.7);
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(pt.x, horizonY - 5); ctx.lineTo(pt.x, horizonY + 5); ctx.stroke();
   }
 
-  // Sun marker on curve
+  // Sun glyph — Solid disc (no glow/halo)
   const sunPt = hybridArcPoint(nowMin, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
   const aboveHorizon = sunPt.alt >= 0;
-
-  // Glow style
-  if (aboveHorizon) {
-    const glow = ctx.createRadialGradient(sunPt.x, sunPt.y, 0, sunPt.x, sunPt.y, 130);
-    glow.addColorStop(0, hexA(accent, 0.5));
-    glow.addColorStop(0.35, hexA(accent, 0.15));
-    glow.addColorStop(1, hexA(accent, 0));
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 130, 0, Math.PI * 2); ctx.fill();
-    const core = ctx.createRadialGradient(sunPt.x, sunPt.y, 0, sunPt.x, sunPt.y, 26);
-    core.addColorStop(0, '#fff6e0');
-    core.addColorStop(0.7, accent);
-    core.addColorStop(1, hexA(accent, 0.3));
-    ctx.fillStyle = core;
-    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 26, 0, Math.PI * 2); ctx.fill();
-  } else {
-    const glow = ctx.createRadialGradient(sunPt.x, sunPt.y, 0, sunPt.x, sunPt.y, 60);
-    glow.addColorStop(0, hexA(accent, 0.25));
-    glow.addColorStop(1, hexA(accent, 0));
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 60, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = hexA(accent, 0.55);
-    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 9, 0, Math.PI * 2); ctx.fill();
+  const radius = aboveHorizon ? 16 : 10;
+  ctx.fillStyle = aboveHorizon ? accent : hexA(accent, 0.55);
+  ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, radius, 0, Math.PI * 2); ctx.fill();
+  if (!aboveHorizon) {
     ctx.strokeStyle = hexA('#ffffff', 0.35);
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, 12, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, radius + 3, 0, Math.PI * 2); ctx.stroke();
   }
 
-  // Stars when sky is dark enough
+  // Stars when dark enough
   if (sunAlt < -8) {
     let s = 13;
     const rng = () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
@@ -628,30 +759,40 @@ function drawScene(W, H, palette, today, nowMin, pos) {
   }
 }
 
-// ── Apply palette to UI text ──────────────────────────────────────────
+// ── Apply palette to UI ───────────────────────────────────────────────
 function applyPalette(palette) {
   const p = palette || {};
   const bgDark = isHexDark(p.bg || '#070710');
-  const fg     = bgDark ? '#f6efe0'                  : (p.ink || '#15140e');
-  const fgDim  = bgDark ? 'rgba(246,239,224,0.55)'   : 'rgba(21,20,14,0.55)';
-  const ruleC  = bgDark ? 'rgba(246,239,224,0.18)'   : 'rgba(21,20,14,0.18)';
+  const fg     = bgDark ? '#f6efe0' : (p.ink || '#15140e');
+  const fgDim  = bgDark ? 'rgba(246,239,224,0.55)' : 'rgba(21,20,14,0.55)';
+  const ruleC  = bgDark ? 'rgba(246,239,224,0.18)' : 'rgba(21,20,14,0.18)';
   const accent = p.accent || '#5b6f9c';
+  const unitC  = `color-mix(in srgb, ${fg} 58%, transparent)`;
 
-  document.getElementById('clock').style.color    = fg;
-  document.getElementById('date').style.color     = fgDim;
-  document.getElementById('hero-label').style.color = fgDim;
+  // Portrait
+  document.getElementById('p-clock').style.color      = accent;
+  document.getElementById('p-date').style.color       = fgDim;
+  document.getElementById('p-hero-label').style.color = fgDim;
+  for (const el of document.querySelectorAll('.hyb-hero-h, .hyb-hero-m')) el.style.color = fg;
+  for (const el of document.querySelectorAll('.hyb-hero-unit')) el.style.color = unitC;
+  for (const el of document.querySelectorAll('.hyb-cell-label')) el.style.color = fgDim;
+  for (const el of document.querySelectorAll('.hyb-cell-val'))   el.style.color = accent;
+  document.getElementById('p-row2').style.borderColor = ruleC;
 
-  for (const el of document.querySelectorAll('.hero-h, .hero-m')) el.style.color = fg;
-  for (const el of document.querySelectorAll('.hero-unit')) el.style.color = `color-mix(in srgb, ${fg} 55%, transparent)`;
+  // Landscape
+  document.getElementById('l-clock').style.color       = accent;
+  document.getElementById('l-phase').style.color       = fgDim;
+  document.getElementById('l-date').style.color        = fgDim;
+  document.getElementById('l-hero-label').style.color  = fgDim;
+  for (const el of document.querySelectorAll('.hyw-hero-h, .hyw-hero-m')) el.style.color = fg;
+  for (const el of document.querySelectorAll('.hyw-hero-unit')) el.style.color = unitC;
+  document.getElementById('l-delta-head').style.color  = fgDim;
+  document.getElementById('l-delta-val').style.color   = accent;
+  for (const el of document.querySelectorAll('.hyw-cell-label')) el.style.color = fgDim;
+  for (const el of document.querySelectorAll('.hyw-cell-val'))   el.style.color = accent;
+  document.getElementById('l-bottom').style.borderColor = ruleC;
 
-  for (const el of document.querySelectorAll('.stat-label')) el.style.color = fgDim;
-  for (const el of document.querySelectorAll('.stat-val'))   el.style.color = accent;
-
-  document.getElementById('row-secondary').style.borderColor = ruleC;
   document.getElementById('location-notice').style.color = fg;
-  document.getElementById('location-display').style.color = fg;
-  const badge = document.getElementById('locating-badge');
-  if (badge) badge.style.color = fg;
 }
 
 // ── State ─────────────────────────────────────────────────────────────
@@ -679,72 +820,83 @@ function updateUI(now) {
   drawScene(W, H, palette, today, nowMin, pos);
   applyPalette(palette);
 
-  // Clock
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const clockStr = fmtClock24(nowMin);
+  document.getElementById('p-clock').textContent = clockStr;
+  document.getElementById('l-clock').textContent = clockStr;
 
-  // Date
   if (now.toDateString() !== lastDateStr) {
     lastDateStr = now.toDateString();
     recompute(now);
-    document.getElementById('date').textContent =
-      now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    document.getElementById('p-date').textContent = dateStr;
+    document.getElementById('l-date').textContent = dateStr;
   }
+
+  const phase = phaseLabel(pos.alt, nowMin > (today && today.solarNoon != null ? today.solarNoon : 720));
+  document.getElementById('l-phase').textContent = phase;
 
   if (!today) return;
   const t = today;
 
-  // Hero: daylight hours + minutes
   const dl = daylightMinutes(t);
   const dh = dl != null ? Math.floor(dl / 60) : '--';
   const dm = dl != null ? String(Math.round(dl % 60)).padStart(2, '0') : '--';
-  document.getElementById('hero-h').textContent = dh;
-  document.getElementById('hero-m').textContent = dm;
+  document.getElementById('p-hero-h').textContent = dh;
+  document.getElementById('p-hero-m').textContent = dm;
+  document.getElementById('l-hero-h').textContent = dh;
+  document.getElementById('l-hero-m').textContent = dm;
 
-  // Primary row
-  document.getElementById('val-sunrise').textContent = fmtClock(t.sunrise);
-  document.getElementById('val-noon').textContent    = fmtClock(t.solarNoon);
-  document.getElementById('val-sunset').textContent  = fmtClock(t.sunset);
+  // Portrait primary row
+  document.getElementById('p-sunrise').textContent = fmtClock(t.sunrise);
+  document.getElementById('p-noon').textContent    = fmtClock(t.solarNoon);
+  document.getElementById('p-sunset').textContent  = fmtClock(t.sunset);
 
-  // Secondary row
-  document.getElementById('val-civil-dawn').textContent = fmtClock(t.civilDawn);
-  document.getElementById('val-civil-dusk').textContent = fmtClock(t.civilDusk);
-
+  // Portrait secondary row
+  document.getElementById('p-civil-dawn').textContent = fmtClock(t.civilDawn);
+  document.getElementById('p-civil-dusk').textContent = fmtClock(t.civilDusk);
   const delta = dayOverDayDelta(t, yesterday);
+  document.getElementById('p-delta-label').textContent = (delta != null && delta < 0) ? 'Time lost' : 'Time gained';
+  document.getElementById('p-delta').textContent = delta != null ? fmtDelta(delta) : '--';
+
+  // Landscape bottom
+  document.getElementById('l-civil-dawn').textContent = fmtClock(t.civilDawn);
+  document.getElementById('l-sunrise').textContent    = fmtClock(t.sunrise);
+  document.getElementById('l-noon').textContent       = fmtClock(t.solarNoon);
+  document.getElementById('l-sunset').textContent     = fmtClock(t.sunset);
+  document.getElementById('l-civil-dusk').textContent = fmtClock(t.civilDusk);
+
+  // Landscape delta block
   if (delta != null) {
-    document.getElementById('lbl-delta').textContent = delta >= 0 ? 'Time gained' : 'Time lost';
-    document.getElementById('val-delta').textContent = (delta >= 0 ? '+' : '−') + fmtDuration(Math.abs(delta));
+    document.getElementById('l-delta-head').textContent = delta >= 0 ? 'Gaining' : 'Losing';
+    document.getElementById('l-delta-val').textContent  = fmtDuration(Math.abs(delta));
   }
 }
 
-// ── Tick ──────────────────────────────────────────────────────────────
-function revealData() {
-  const heroNum = document.getElementById('hero-num');
-  const bottom  = document.getElementById('bottom');
-  // Remove ph shimmer from hero spans
-  for (const el of document.querySelectorAll('.ph')) el.classList.remove('ph');
-  // Trigger reveal (next frame so transition fires)
-  requestAnimationFrame(() => {
-    heroNum.classList.remove('data-hidden');
-    bottom.classList.remove('data-hidden');
-  });
-  // Hide locating badge, show coordinates
-  const badge = document.getElementById('locating-badge');
-  if (badge) badge.style.display = 'none';
-}
-
+// ── Data reveal ───────────────────────────────────────────────────────
 let dataRevealed = false;
 
+function revealData() {
+  requestAnimationFrame(() => {
+    for (const id of ['p-hero-num', 'p-bottom', 'l-hero-num', 'l-delta-block', 'l-bottom']) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('data-hidden');
+    }
+  });
+}
+
+// ── Tick ──────────────────────────────────────────────────────────────
 function tick() {
   const now = new Date();
   if (lat == null) {
     const W = window.innerWidth, H = window.innerHeight;
     drawScene(W, H, null, null, 0, null);
-    document.getElementById('clock').textContent =
-      now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-    // Show date even before location
-    document.getElementById('date').textContent =
-      now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const nowMin = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    const clockStr = fmtClock24(nowMin);
+    document.getElementById('p-clock').textContent = clockStr;
+    document.getElementById('l-clock').textContent = clockStr;
+    const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    document.getElementById('p-date').textContent = dateStr;
+    document.getElementById('l-date').textContent = dateStr;
     return;
   }
   if (!dataRevealed) {
@@ -761,16 +913,13 @@ navigator.geolocation.getCurrentPosition(
     lon = p.coords.longitude;
     const latS = `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}`;
     const lonS = `${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}`;
-    const coordStr = `${latS}  ${lonS}`;
-    document.getElementById('location-display').innerHTML = coordStr;
-    document.getElementById('location-notice').textContent = coordStr;
+    document.getElementById('location-notice').textContent = `${latS}  ${lonS}`;
     lastDateStr = null;
     tick();
   },
   () => {
-    lat = 51.4779; lon = -0.0015;
-    document.getElementById('location-display').innerHTML = 'Greenwich, London (default)';
-    document.getElementById('location-notice').textContent = 'Location unavailable — showing Greenwich, London';
+    lat = 37.77; lon = -122.42;
+    document.getElementById('location-notice').textContent = 'Location unavailable — showing San Francisco';
     lastDateStr = null;
     tick();
   },
