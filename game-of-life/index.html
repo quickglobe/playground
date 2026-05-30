@@ -151,6 +151,9 @@
     margin: 16px;
     border-radius: 8px;
     border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   canvas {
@@ -247,10 +250,10 @@ function idx(c, r) {
 function initSize() {
   const w = wrap.clientWidth;
   const h = wrap.clientHeight;
-  canvas.width = w;
-  canvas.height = h;
-  cols = Math.max(20, Math.ceil(w / CELL) + 4);
-  rows = Math.max(20, Math.ceil(h / CELL) + 4);
+  cols = Math.max(20, Math.floor(w / CELL));
+  rows = Math.max(20, Math.floor(h / CELL));
+  canvas.width = cols * CELL;
+  canvas.height = rows * CELL;
   grid = makeGrid(cols, rows);
   nextGrid = makeGrid(cols, rows);
   generation = 0;
@@ -432,9 +435,7 @@ canvas.addEventListener('touchend', e => {
 // ── Resize ─────────────────────────────────────────────────────────────────────
 
 function onResize() {
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  canvas.width = w;
-  canvas.height = h;
+  initSize();
 }
 
 window.addEventListener('resize', onResize);
