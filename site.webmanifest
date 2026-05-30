@@ -1,0 +1,12 @@
+{
+  "name": "Playground",
+  "short_name": "Playground",
+  "description": "Fun experiments and side projects.",
+  "icons": [
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#00bdbd",
+  "background_color": "#00bdbd",
+  "display": "browser"
+}
