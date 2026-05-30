@@ -143,7 +143,7 @@
   /* ADD A PROJECT: append here. chip: 'c-teal' | 'c-blue'. preview: 'sun' | 'life' */
   const PROJECTS = [
     { title: "Sun Tracker", tag: "Astronomy", chip: "c-blue", desc: "Real-time solar position, sunrise & sunset for any spot on Earth.", url: "sun-tracker/", preview: "sun" },
-    { title: "Game of Life", tag: "Simulation", chip: "c-teal", desc: "Conway's cellular automaton — watch tiny worlds bloom and die.", url: "game-of-life/", preview: "life" },
+    { title: "Game of Life", tag: "Simulation", chip: "c-teal", desc: "A classic simulation of Conway's Game of Life.", url: "game-of-life/", preview: "life" },
   ];
 
   function previewHTML(kind) {
@@ -182,7 +182,7 @@
       ctx.fillStyle = '#e94560';
       for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.fillRect(x*cell+0.5, y*cell+0.5, cell-1, cell-1); }
     }
-    step(); setInterval(step, 380);
+    step();
   }
   document.querySelectorAll(".life-scene").forEach(startLife);
 
