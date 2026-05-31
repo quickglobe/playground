@@ -86,8 +86,10 @@
   /* sun preview — canvas-rendered dusk scene matching the actual app */
   .sun-scene { width: 100%; height: 100%; display: block; }
 
-  /* life preview — bg adapts to light/dark mode */
-  .life-scene { width: 100%; height: 100%; display: block; background: #e8eeff; }
+  /* life preview — bg adapts to light/dark mode, matching the actual app palette.
+     Rendered at CSS resolution + pixelated upscale (like the app) so cells and
+     grid lines stay crisp instead of antialiasing under a fractional DPR. */
+  .life-scene { width: 100%; height: 100%; display: block; background: #f0f4ff; image-rendering: pixelated; }
   @media (prefers-color-scheme: dark) { .life-scene { background: #1a1a2e; } }
 
   footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
@@ -133,23 +135,55 @@
   });
 
   function startLife(canvas) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const W = canvas.clientWidth, H = canvas.clientHeight;
-    canvas.width = W*dpr; canvas.height = H*dpr;
-    const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
-    const cell = 12, cols = Math.ceil(W/cell), rows = Math.ceil(H/cell);
+    if (!W || !H) return;
+    // Render at CSS resolution; the canvas is upscaled to the device with
+    // image-rendering: pixelated (set in CSS), exactly like the main app, so
+    // every cell and grid line snaps to a whole pixel with no antialiasing.
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    // The main app sizes its box to an exact integer number of CELL-sized cells
+    // so the grid is flush with the box border (no clipped cell, no gap). The
+    // preview window is a fixed-size design element that can't be resized to the
+    // grid, so instead the cells are stretched to fill it edge-to-edge: pick the
+    // whole number of cells nearest the target size, then snap every cell
+    // boundary to an integer pixel. Each cell is fully drawn (no overflow → no
+    // clipped cells) and the grid reaches all four edges (no margin → no gap).
+    const cell = 12;
+    const cols = Math.max(1, Math.round(W/cell));
+    const rows = Math.max(1, Math.round(H/cell));
+    const colX = i => Math.round(i*W/cols);   // left edge of column i, snapped
+    const rowY = j => Math.round(j*H/rows);    // top edge of row j, snapped
+
     let grid = seed();
     function seed(){ return Array.from({length:rows},()=>Array.from({length:cols},()=>Math.random()>0.72?1:0)); }
     function draw() {
       const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const bg   = dark ? '#1a1a2e' : '#f0f4ff';
+      const line = dark ? 'rgba(15,52,96,0.6)' : 'rgba(150,165,220,0.5)';
       ctx.clearRect(0,0,W,H);
-      ctx.strokeStyle = dark ? 'rgba(15,52,96,0.6)' : 'rgba(100,120,220,0.3)'; ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      for(let x=0;x<=cols;x++){ ctx.moveTo(x*cell,0); ctx.lineTo(x*cell,H); }
-      for(let y=0;y<=rows;y++){ ctx.moveTo(0,y*cell); ctx.lineTo(W,y*cell); }
-      ctx.stroke();
+      ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+      // Full cells spanning their snapped boundaries, inset by the 1px interior
+      // line on the left/top edge so a live cell never paints over a grid line
+      // (the overlap). The right/bottom line belongs to the next cell, which is
+      // likewise inset, so every interior line keeps a clean 1px gap with cells
+      // flush on both sides.
       ctx.fillStyle = '#e94560';
-      for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.fillRect(x*cell+0.5, y*cell+0.5, cell-1, cell-1); }
+      for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){
+        const x0 = colX(x) + (x ? 1 : 0), y0 = rowY(y) + (y ? 1 : 0);
+        ctx.fillRect(x0, y0, colX(x+1)-x0, rowY(y+1)-y0);
+      }
+
+      // Interior divisions only; the preview frame is the outer border, so the
+      // edge lines (i==0/i==cols, j==0/j==rows) are left off to avoid doubling
+      // up on the frame.
+      ctx.strokeStyle = line; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for(let x=1;x<cols;x++){ const px = colX(x) + 0.5; ctx.moveTo(px, 0); ctx.lineTo(px, H); }
+      for(let y=1;y<rows;y++){ const py = rowY(y) + 0.5; ctx.moveTo(0, py); ctx.lineTo(W, py); }
+      ctx.stroke();
     }
     function advance(){
       let alive = 0;
