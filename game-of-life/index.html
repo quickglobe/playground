@@ -165,8 +165,8 @@
   /* A code-fence style block, flush-right (pushed by .sep) and sized in JS to
      the Clear button's width so its left/right edges line up exactly with the
      button below it. Tighter horizontal padding than the buttons, and the font
-     is auto-fit in JS so the realistic 4-digit maximum still fits; centred text
-     keeps the count growing symmetrically without shifting the block. */
+     is auto-fit in JS so the realistic 4-digit maximum still fits; the text is
+     left-aligned so the count grows rightward from a fixed left edge. */
   #gen-counter {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.85rem;
@@ -174,7 +174,7 @@
     color: var(--muted);
     white-space: nowrap;
     display: inline-block;
-    text-align: center;
+    text-align: left;
     padding: 6px 5px;
     background: var(--badge-bg);
     border: 1px solid var(--border);
