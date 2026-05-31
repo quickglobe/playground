@@ -41,6 +41,8 @@ Sessions often run in the cloud and are driven from a phone, so the only "previe
 
 - **Keep the PR open until the change is confirmed working.** Push iterative fixes as new commits to the same branch rather than opening a fresh PR each round. Merge only once it is verified.
 - **Preview a branch without merging via raw.githack.** For a self-contained file, open `https://raw.githack.com/quickglobe/playground/<branch>/<project>/index.html` on the device. It serves over HTTPS with correct content types, so the page renders and HTTPS-only APIs (geolocation, etc.) work. Use this to check on a real device before merging.
+  - **Make the link clickable/tappable.** Put the bare githack URL on its own line (no surrounding markdown link text, no parentheses, no trailing punctuation), so the terminal/phone client auto-links it. Do not hand the user the PR (`github.com/.../pull/N`) URL as the preview — that opens the diff view, not the rendered page; the `raw.githack.com` URL is the preview.
+  - githack caches aggressively, so if a preview looks stale, append a cache-busting query (`?v=2`, bump the number each time).
 - **Some things only reproduce on a real device** (e.g. iOS Safari status bar / toolbar tinting), so a device check via the githack link is the last step before merge — desktop/headless browsers will not show them.
 - For changes that do not depend on device chrome (layout, JS logic, canvas), they can be verified headlessly in the session before the user ever looks.
 
