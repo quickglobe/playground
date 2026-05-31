@@ -353,14 +353,18 @@ function draw() {
     }
   }
 
+  // Only interior divisions are drawn here; the box border is the outer
+  // frame on all four sides. Drawing the c==0/r==0 lines would double up on
+  // that border, and the c==cols/r==rows lines fall at gridW/gridH+0.5 which
+  // is outside the canvas and gets clipped — so both edges are left to the box.
   ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  for (let c = 0; c <= cols; c++) {
+  for (let c = 1; c < cols; c++) {
     const x = c * CELL + 0.5;
     ctx.moveTo(x, 0); ctx.lineTo(x, h);
   }
-  for (let r = 0; r <= rows; r++) {
+  for (let r = 1; r < rows; r++) {
     const y = r * CELL + 0.5;
     ctx.moveTo(0, y); ctx.lineTo(w, y);
   }
@@ -508,8 +512,11 @@ requestAnimationFrame(loop);
     update();
   }
 
+  // Buttons get the squircle; the grid box does not. A squircle clip pulls in
+  // ~1px along the straight edges, which would trim the box's own 1px border
+  // asymmetrically. The box relies on border-radius + overflow:hidden instead,
+  // so its border stays uniform on all four sides and aligns with the grid.
   document.querySelectorAll('button').forEach(el => applySquircle(el, 6));
-  applySquircle(document.getElementById('canvas-wrap'), 8);
 </script>
 </body>
 </html>
