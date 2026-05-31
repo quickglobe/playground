@@ -97,11 +97,6 @@
     text-align: center;
   }
 
-  #btn-theme {
-    border-color: var(--border);
-    padding: 0 10px;
-  }
-
   #speed-group {
     display: flex;
     align-items: center;
@@ -121,7 +116,7 @@
     -webkit-appearance: none;
     flex: 1;
     min-width: 50px;
-    max-width: 140px;
+    max-width: 220px;
     height: 4px;
     border-radius: 2px;
     background: var(--range-track);
@@ -141,6 +136,20 @@
     background: var(--accent);
     border: none;
     cursor: pointer;
+  }
+
+  @media (pointer: coarse) {
+    input[type=range] {
+      max-width: none;
+      height: 6px;
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      width: 28px; height: 28px;
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 28px; height: 28px;
+    }
   }
 
   #gen-counter {
@@ -185,7 +194,6 @@
     <h1>Game of Life</h1>
     <span class="sep"></span>
     <span id="gen-counter">Gen 0</span>
-    <button id="btn-theme" title="Toggle light/dark mode">Light</button>
   </div>
   <div id="toolbar-bottom">
     <button id="btn-play">Play</button>
@@ -193,7 +201,6 @@
       <input type="range" id="speed-slider" min="1" max="30" value="10">
       <span id="speed-val">10 fps</span>
     </div>
-    <span class="sep"></span>
     <button id="btn-random">Random</button>
     <button id="btn-clear">Clear</button>
   </div>
@@ -231,11 +238,6 @@ let currentTheme = systemDark.matches ? 'dark' : 'light';
 function applyTheme(theme) {
   currentTheme = theme;
   document.body.dataset.theme = theme === 'light' ? 'light' : '';
-  document.getElementById('btn-theme').textContent = theme === 'dark' ? 'Light' : 'Dark';
-}
-
-function toggleTheme() {
-  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
 }
 
 systemDark.addEventListener('change', e => applyTheme(e.matches ? 'dark' : 'light'));
@@ -402,8 +404,6 @@ document.getElementById('btn-random').addEventListener('click', () => {
 document.getElementById('btn-clear').addEventListener('click', () => {
   clearGrid();
 });
-
-document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 
 // ── Screen → cell coords ───────────────────────────────────────────────────────
 
