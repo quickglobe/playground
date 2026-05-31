@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,21 +31,8 @@
     --shadow-col: oklch(0.26 0.04 255);
     color-scheme: light;
   }
-  html[data-theme="dark"] {
-    --bg: oklch(0.2 0.03 255);
-    --text: oklch(0.95 0.015 220);
-    --muted: oklch(0.72 0.03 245);
-    --card-brd: oklch(0.85 0.05 230);
-    --surface: oklch(0.26 0.035 255);
-    --teal: oklch(0.78 0.13 195);
-    --teal-soft: oklch(0.4 0.08 195);
-    --blue: oklch(0.74 0.14 255);
-    --blue-soft: oklch(0.38 0.09 255);
-    --shadow-col: oklch(0.08 0.02 255);
-    color-scheme: dark;
-  }
   @media (prefers-color-scheme: dark) {
-    html[data-theme="auto"] {
+    :root {
       --bg: oklch(0.2 0.03 255); --text: oklch(0.95 0.015 220); --muted: oklch(0.72 0.03 245);
       --card-brd: oklch(0.85 0.05 230); --surface: oklch(0.26 0.035 255);
       --teal: oklch(0.78 0.13 195); --teal-soft: oklch(0.4 0.08 195);
@@ -58,7 +45,6 @@
     font-family: 'Hanken Grotesk', system-ui, sans-serif;
     background: var(--bg); color: var(--text); min-height: 100vh;
     -webkit-font-smoothing: antialiased; overflow-x: hidden;
-    transition: background 0.5s, color 0.5s;
   }
   .blobs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
   .blob { position: absolute; border-radius: 42% 58% 60% 40% / 45% 45% 55% 55%; opacity: 0.5; filter: blur(2px); }
@@ -74,20 +60,6 @@
   .brand h1 .pop { display: inline-block; color: var(--teal); animation: wiggle 3s ease-in-out infinite; transform-origin: bottom; }
   @keyframes wiggle { 0%,92%,100%{ transform: rotate(0); } 95%{ transform: rotate(-9deg); } 98%{ transform: rotate(7deg); } }
   .brand p { font-size: clamp(15px,2.5vw,18px); color: var(--muted); margin-top: 16px; font-weight: 500; }
-
-  .toggle-wrap {
-    flex-shrink: 0; background: var(--card-brd); padding: 3px; border-radius: 23px;
-    filter: drop-shadow(4px 4px 0 var(--shadow-col)); transition: transform 0.18s, filter 0.18s;
-  }
-  .toggle-wrap:has(.toggle:hover) { transform: translate(-2px,-2px); filter: drop-shadow(6px 6px 0 var(--shadow-col)); }
-  .toggle-wrap:has(.toggle:active) { transform: translate(2px,2px); filter: drop-shadow(1px 1px 0 var(--shadow-col)); }
-  .toggle {
-    width: 60px; height: 60px; border-radius: 20px; cursor: pointer;
-    background: var(--surface); border: none; display: grid; place-items: center; color: var(--text);
-  }
-  .toggle .disc { width: 22px; height: 22px; border-radius: 50%; background: var(--text); transition: box-shadow 0.4s, background 0.4s; }
-  html[data-theme="dark"] .toggle .disc { background: transparent; box-shadow: inset -8px -2px 0 0 var(--text); }
-  @media (prefers-color-scheme: dark) { html[data-theme="auto"] .toggle .disc { background: transparent; box-shadow: inset -8px -2px 0 0 var(--text); } }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: clamp(20px,3.5vw,30px); }
   .card-wrap {
@@ -115,15 +87,13 @@
   .sun-scene { width: 100%; height: 100%; display: block; }
 
   /* life preview — bg adapts to light/dark mode */
-  .life-scene { width: 100%; height: 100%; display: block; background: #1a1a2e; }
-  html[data-theme="light"] .life-scene { background: #e8eeff; }
-  @media (prefers-color-scheme: light) { html[data-theme="auto"] .life-scene { background: #e8eeff; } }
+  .life-scene { width: 100%; height: 100%; display: block; background: #e8eeff; }
+  @media (prefers-color-scheme: dark) { .life-scene { background: #1a1a2e; } }
 
   footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
   footer a { color: var(--text); text-decoration: none; padding: 6px 12px; border: 2px solid var(--card-brd); border-radius: 999px; background: var(--surface); box-shadow: 3px 3px 0 var(--shadow-col); transition: transform 0.15s, box-shadow 0.15s; }
   footer a:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow-col); }
 </style>
-<script>(function(){var s=localStorage.getItem("pg-theme");if(s)document.documentElement.setAttribute("data-theme",s);})();</script>
 </head>
 <body>
 <div class="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
@@ -133,7 +103,6 @@
       <h1>Play<span class="pop">ground</span></h1>
       <p>Fun experiments &amp; side projects.</p>
     </div>
-    <div class="toggle-wrap"><button class="toggle" id="themeBtn" aria-label="Toggle dark mode" title="Toggle theme"><span class="disc"></span></button></div>
   </header>
 
   <main class="grid" id="grid"></main>
@@ -172,8 +141,7 @@
     let grid = seed();
     function seed(){ return Array.from({length:rows},()=>Array.from({length:cols},()=>Math.random()>0.72?1:0)); }
     function draw() {
-      const t = document.documentElement.getAttribute("data-theme");
-      const dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       ctx.clearRect(0,0,W,H);
       ctx.strokeStyle = dark ? 'rgba(15,52,96,0.6)' : 'rgba(100,120,220,0.3)'; ctx.lineWidth = 0.5;
       ctx.beginPath();
@@ -231,17 +199,8 @@
     ctx.fillStyle = '#e08a6a';
     ctx.beginPath(); ctx.arc(sun.x, sun.y, 8, 0, Math.PI*2); ctx.fill();
   }
-  const lifeRedraws = [];
-  document.querySelectorAll(".life-scene").forEach(c => lifeRedraws.push(startLife(c)));
+  document.querySelectorAll(".life-scene").forEach(c => startLife(c));
   document.querySelectorAll(".sun-scene").forEach(startSun);
-
-  const root = document.documentElement, btn = document.getElementById("themeBtn");
-  btn.addEventListener("click", () => {
-    const order = ["auto","light","dark"], cur = root.getAttribute("data-theme") || "auto";
-    const next = order[(order.indexOf(cur)+1)%order.length];
-    root.setAttribute("data-theme", next); localStorage.setItem("pg-theme", next);
-    lifeRedraws.forEach(fn => fn());
-  });
 </script>
 <script type="module">
   import { generateClipPath } from 'https://esm.sh/@lisse/core@0.4.0';
@@ -257,8 +216,6 @@
     update();
   }
 
-  document.querySelectorAll('.toggle-wrap').forEach(el => applySquircle(el, 23));
-  document.querySelectorAll('.toggle').forEach(el => applySquircle(el, 20));
   document.querySelectorAll('.card-wrap').forEach(el => applySquircle(el, 29));
   document.querySelectorAll('.card').forEach(el => applySquircle(el, 26));
   document.querySelectorAll('.preview-wrap').forEach(el => applySquircle(el, 21));
