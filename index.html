@@ -201,8 +201,7 @@
     canvas.width = W*dpr; canvas.height = H*dpr;
     const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
     const horizonY = H*0.62, peakH = horizonY - H*0.42;
-    // Fixed late-afternoon almanac — sun visibly above horizon near dusk
-    const sunriseMin = 348, sunsetMin = 1112, solarNoonMin = 730, nowMin = 1020;
+    const sunriseMin = 348, sunsetMin = 1112, solarNoonMin = 730;
     // Palette directly from the actual app at alt ≈ 6° (low afternoon sun)
     // sky:#e8a574 horizon:#ffc88a bg:#c08254 → derived: mix(horizon,bg,0.35)=#e9b077 darken(bg,0.08)=#b1784d darken(bg,0.32)=#835839
     const grad = ctx.createLinearGradient(0, 0, 0, H);
@@ -212,34 +211,22 @@
     grad.addColorStop(horizonY/H+0.0001, '#b1784d');
     grad.addColorStop(1, '#835839');
     ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-    // Horizon haze (accent #ff7a2a at 18% opacity, matching actual app logic for |alt|<10)
-    const haze = ctx.createLinearGradient(0, horizonY-H*0.08, 0, horizonY+H*0.02);
-    haze.addColorStop(0, 'rgba(255,255,255,0)');
-    haze.addColorStop(0.75, 'rgba(255,122,42,0.18)');
-    haze.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = haze; ctx.fillRect(0, horizonY-H*0.08, W, H*0.10);
-    // Horizon line
-    ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(W, horizonY); ctx.stroke();
-    // Arc position helper (same formula as the actual app's hybridArcPoint)
+    // Arc geometry helper (same formula as the actual app's hybridArcPoint)
     function arcPt(m) {
       const hc = Math.cos(Math.PI*(sunsetMin-sunriseMin)/(60*24));
       const phi = ((m-solarNoonMin)/720)*Math.PI;
       return { x: (m/1440)*W, y: horizonY-(Math.cos(phi)-hc)/Math.max(1-hc,0.01)*peakH };
     }
-    // Full 24h arc curve
+    // Quarter arc: solar noon descending toward sunset
     ctx.strokeStyle = 'rgba(255,122,42,0.55)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
     ctx.beginPath();
-    for (let i=0; i<=240; i++) { const pt=arcPt((i/240)*1440); i===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y); }
-    ctx.stroke();
-    // Sunrise/sunset tick marks
-    for (const m of [sunriseMin, sunsetMin]) {
-      const pt = arcPt(m);
-      ctx.strokeStyle = 'rgba(255,122,42,0.7)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(pt.x,horizonY-5); ctx.lineTo(pt.x,horizonY+5); ctx.stroke();
+    for (let i=0; i<=60; i++) {
+      const pt = arcPt(solarNoonMin + (i/60)*360);
+      i===0 ? ctx.moveTo(pt.x,pt.y) : ctx.lineTo(pt.x,pt.y);
     }
-    // Sun disc
-    const sun = arcPt(nowMin);
+    ctx.stroke();
+    // Sun disc at end of arc
+    const sun = arcPt(solarNoonMin + 360);
     ctx.fillStyle = '#ff7a2a';
     ctx.beginPath(); ctx.arc(sun.x, sun.y, 8, 0, Math.PI*2); ctx.fill();
   }
