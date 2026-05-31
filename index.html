@@ -204,12 +204,12 @@
     const sunriseMin = 348, sunsetMin = 1112, solarNoonMin = 730;
     // Palette directly from the actual app at alt ≈ 6° (low afternoon sun)
     // sky:#e8a574 horizon:#ffc88a bg:#c08254 → derived: mix(horizon,bg,0.35)=#e9b077 darken(bg,0.08)=#b1784d darken(bg,0.32)=#835839
+    // All-sky dusk gradient — palette from actual app across civil dusk → just-after-sunset
     const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#e8a574');
-    grad.addColorStop(horizonY/H*0.92, '#ffc88a');
-    grad.addColorStop(horizonY/H, '#e9b077');
-    grad.addColorStop(horizonY/H+0.0001, '#b1784d');
-    grad.addColorStop(1, '#835839');
+    grad.addColorStop(0, '#2a2236');
+    grad.addColorStop(0.45, '#3a324e');
+    grad.addColorStop(0.8, '#85513a');
+    grad.addColorStop(1, '#c4753a');
     ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
     // Arc geometry helper (same formula as the actual app's hybridArcPoint)
     function arcPt(m) {
@@ -217,17 +217,17 @@
       const phi = ((m-solarNoonMin)/720)*Math.PI;
       return { x: (m/1440)*W, y: horizonY-(Math.cos(phi)-hc)/Math.max(1-hc,0.01)*peakH };
     }
-    // Quarter arc: solar noon descending toward sunset
-    ctx.strokeStyle = 'rgba(255,122,42,0.55)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    // Half arc centered on solar noon (6h either side)
+    ctx.strokeStyle = 'rgba(224,138,106,0.65)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
     ctx.beginPath();
-    for (let i=0; i<=60; i++) {
-      const pt = arcPt(solarNoonMin + (i/60)*360);
+    for (let i=0; i<=80; i++) {
+      const pt = arcPt(solarNoonMin - 360 + (i/80)*720);
       i===0 ? ctx.moveTo(pt.x,pt.y) : ctx.lineTo(pt.x,pt.y);
     }
     ctx.stroke();
-    // Sun disc at end of arc
+    // Sun disc at the dusk end of the arc
     const sun = arcPt(solarNoonMin + 360);
-    ctx.fillStyle = '#ff7a2a';
+    ctx.fillStyle = '#e08a6a';
     ctx.beginPath(); ctx.arc(sun.x, sun.y, 8, 0, Math.PI*2); ctx.fill();
   }
   const lifeRedraws = [];
