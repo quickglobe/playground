@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
 <title>Game of Life</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<meta name="theme-color" content="#1a1a2e">
+<meta name="theme-color" content="#16213e">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -37,8 +37,13 @@
     --range-track: #c5cae9;
   }
 
+  /* On iOS 26 Safari the top status bar (at scrollY 0, this app never scrolls)
+     is tinted from the <body> background only — fixed elements are not sampled
+     for the top in that state. So the body wears the toolbar colour, making the
+     control header bleed full-width up into the status bar / Dynamic Island. The
+     grid area paints its own --bg via #stage below. */
   body {
-    background: var(--bg);
+    background: var(--toolbar-bg);
     color: var(--text);
     font-family: system-ui, sans-serif;
     display: flex;
@@ -53,6 +58,11 @@
     flex-direction: column;
     gap: 6px;
     padding: 8px 12px;
+    /* Extend the header background up under the notch and out to the side
+       safe-area insets so it bleeds edge-to-edge behind the OS chrome. */
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-left: calc(12px + env(safe-area-inset-left));
+    padding-right: calc(12px + env(safe-area-inset-right));
     background: var(--toolbar-bg);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
@@ -167,7 +177,28 @@
     align-items: center;
     justify-content: center;
     padding: 16px;
+    /* Keep the box clear of the home indicator / side insets. initSize() reads
+       the real computed padding, so these asymmetric values don't break the
+       grid sizing maths. */
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
     overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* Single fixed strip near the bottom edge that Safari 26 samples to tint the
+     bottom toolbar to the grid-area colour (the body drives the top). Sized
+     above the 3px threshold even when the safe-area inset reports 0, and given
+     no z-index so it paints behind the controls. */
+  #bottom-tint {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: max(env(safe-area-inset-bottom, 0px), 16px);
+    background: var(--bg);
+    pointer-events: none;
   }
 
   /* The box is sized by JS to an exact integer number of cells, so the grid
@@ -212,9 +243,10 @@
   </div>
 </div>
 
+<div id="bottom-tint"></div>
+
 <script>
 const CELL = 14;
-const STAGE_PAD = 16;   // must match #stage padding
 const BOX_BORDER = 1;   // must match #canvas-wrap border width
 const MIN_CELLS = 8;
 const DEAD = 0, ALIVE = 1;
@@ -271,9 +303,16 @@ function idx(c, r) {
 }
 
 function initSize() {
-  // Space available to the box, inside the stage padding.
-  const availW = stage.clientWidth - 2 * STAGE_PAD;
-  const availH = stage.clientHeight - 2 * STAGE_PAD;
+  // Space available to the box, inside the stage padding. Read the real
+  // computed padding (clientWidth/Height include it) so the asymmetric
+  // safe-area insets on the sides/bottom are accounted for exactly.
+  const cs = getComputedStyle(stage);
+  const padL = parseFloat(cs.paddingLeft) || 0;
+  const padR = parseFloat(cs.paddingRight) || 0;
+  const padT = parseFloat(cs.paddingTop) || 0;
+  const padB = parseFloat(cs.paddingBottom) || 0;
+  const availW = stage.clientWidth - padL - padR;
+  const availH = stage.clientHeight - padT - padB;
 
   // Largest whole number of cells whose grid fits within that space,
   // leaving room for the box's own border on each side.
