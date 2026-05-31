@@ -115,9 +115,13 @@
   .sun-scene { width: 100%; height: 100%; display: block; }
 
   /* life preview — bg adapts to light/dark mode */
-  .life-scene { width: 100%; height: 100%; display: block; background: #1a1a2e; }
+  .life-scene { display: block; background: #1a1a2e; }
   html[data-theme="light"] .life-scene { background: #e8eeff; }
   @media (prefers-color-scheme: light) { html[data-theme="auto"] .life-scene { background: #e8eeff; } }
+  /* preview container matches canvas bg so the cell-snapped gap is seamless */
+  .preview:has(.life-scene) { background: #1a1a2e; }
+  html[data-theme="light"] .preview:has(.life-scene) { background: #e8eeff; }
+  @media (prefers-color-scheme: light) { html[data-theme="auto"] .preview:has(.life-scene) { background: #e8eeff; } }
 
   footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
   footer a { color: var(--text); text-decoration: none; padding: 6px 12px; border: 2px solid var(--card-brd); border-radius: 999px; background: var(--surface); box-shadow: 3px 3px 0 var(--shadow-col); transition: transform 0.15s, box-shadow 0.15s; }
@@ -165,20 +169,23 @@
 
   function startLife(canvas) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const W = canvas.clientWidth, H = canvas.clientHeight;
-    canvas.width = W*dpr; canvas.height = H*dpr;
+    const cell = 12;
+    const cols = Math.floor(canvas.clientWidth / cell);
+    const rows = Math.floor(canvas.clientHeight / cell);
+    const gridW = cols * cell, gridH = rows * cell;
+    canvas.style.width = gridW + 'px'; canvas.style.height = gridH + 'px';
+    canvas.width = gridW * dpr; canvas.height = gridH * dpr;
     const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
-    const cell = 12, cols = Math.ceil(W/cell), rows = Math.ceil(H/cell);
     let grid = seed();
     function seed(){ return Array.from({length:rows},()=>Array.from({length:cols},()=>Math.random()>0.72?1:0)); }
     function draw() {
       const t = document.documentElement.getAttribute("data-theme");
       const dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      ctx.clearRect(0,0,W,H);
+      ctx.clearRect(0,0,gridW,gridH);
       ctx.strokeStyle = dark ? 'rgba(15,52,96,0.6)' : 'rgba(100,120,220,0.3)'; ctx.lineWidth = 0.5;
       ctx.beginPath();
-      for(let x=0;x<=cols;x++){ ctx.moveTo(x*cell,0); ctx.lineTo(x*cell,H); }
-      for(let y=0;y<=rows;y++){ ctx.moveTo(0,y*cell); ctx.lineTo(W,y*cell); }
+      for(let x=0;x<=cols;x++){ ctx.moveTo(x*cell,0); ctx.lineTo(x*cell,gridH); }
+      for(let y=0;y<=rows;y++){ ctx.moveTo(0,y*cell); ctx.lineTo(gridW,y*cell); }
       ctx.stroke();
       ctx.fillStyle = '#e94560';
       for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.fillRect(x*cell+0.5, y*cell+0.5, cell-1, cell-1); }
