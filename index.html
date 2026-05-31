@@ -211,22 +211,23 @@
     grad.addColorStop(0.8, '#85513a');
     grad.addColorStop(1, '#c4753a');
     ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-    // Arc geometry helper (same formula as the actual app's hybridArcPoint)
+    // Arc geometry helper — x spans the ±7h arc range so the sinusoidal shape fills the canvas
+    const arcStart = solarNoonMin - 420, arcSpan = 840;
     function arcPt(m) {
       const hc = Math.cos(Math.PI*(sunsetMin-sunriseMin)/(60*24));
       const phi = ((m-solarNoonMin)/720)*Math.PI;
-      return { x: (m/1440)*W, y: horizonY-(Math.cos(phi)-hc)/Math.max(1-hc,0.01)*peakH };
+      return { x: ((m-arcStart)/arcSpan)*W, y: horizonY-(Math.cos(phi)-hc)/Math.max(1-hc,0.01)*peakH };
     }
-    // Arc spanning ±7h from solar noon — clipped at canvas bottom (the horizon)
+    // Arc spanning ±7h from solar noon — below-horizon ends clip at canvas edge
     ctx.strokeStyle = 'rgba(224,138,106,0.65)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
     ctx.beginPath();
     for (let i=0; i<=120; i++) {
-      const pt = arcPt(solarNoonMin - 420 + (i/120)*840);
+      const pt = arcPt(arcStart + (i/120)*arcSpan);
       i===0 ? ctx.moveTo(pt.x,pt.y) : ctx.lineTo(pt.x,pt.y);
     }
     ctx.stroke();
-    // Sun disc at the dusk end of the arc
-    const sun = arcPt(solarNoonMin + 360);
+    // Sun disc: late afternoon, well above horizon
+    const sun = arcPt(solarNoonMin + 280);
     ctx.fillStyle = '#e08a6a';
     ctx.beginPath(); ctx.arc(sun.x, sun.y, 8, 0, Math.PI*2); ctx.fill();
   }
