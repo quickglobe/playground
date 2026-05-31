@@ -90,6 +90,57 @@ lines. Fixing one naively reintroduces another, so apply all of these together.
   exactly, no cell exceeds `W`/`H`, no cell overlaps a line pixel) so a device check only
   has to confirm it *looks* right, not whether the maths holds.
 
+## Full-bleed OS chrome tinting on iOS 26 Safari (Liquid Glass)
+
+To make a page's background bleed into the **top status bar / Dynamic Island** and
+the **bottom toolbar** — and especially to give them *different* colours (e.g. a
+sky gradient where the top is blue and the bottom is sand) — you must work with
+Safari 26's "Liquid Glass" tinting, which is undocumented and very particular.
+This took a long debugging loop (sun-tracker); don't rederive it.
+
+How Safari 26 decides each bar's colour:
+
+- **`theme-color` is ignored.** It still parses but does nothing for the toolbar.
+  Keep it only as a fallback for older iOS / Android Chrome.
+- Each bar is tinted from the `background-color` of a `position: fixed`/`sticky`
+  element near that edge, **falling back to the `<body>` background**. The
+  `<html>` background is ignored; only `<body>` matters. `position: absolute`
+  elements, pseudo-elements, and `background-image`/canvas pixels are **not**
+  sampled.
+- A fixed element only **qualifies** if it is within ~4px of the top / ~3px of the
+  bottom, **>=80% wide**, **>=3px tall**, with the colour **on the element itself**
+  (not an absolute child). `opacity: 0` and `pointer-events: none` elements are
+  *still* sampled — use `display: none` to opt an element out.
+- With both a fixed top element and a fixed bottom element, Safari may "pick one"
+  for the whole chrome. Prefer driving each edge by a *different* mechanism (below)
+  and using at most one fixed element.
+
+The catch for full-screen, **non-scrolling** apps (`html, body { overflow: hidden }`,
+`touch-action: none`, so `scrollY` is pinned at 0):
+
+- At `scrollY = 0`, Safari tints the **top status bar from the `<body>` background
+  only** — fixed elements are NOT consulted for the top in that state.
+- So the reliable pattern is: **drive the top via `document.body.style.background`**
+  (set it to the top/sky colour; it tracks live JS updates), and **drive the bottom
+  via a single fixed strip** set to the bottom/ground colour.
+
+Bottom-strip gotchas:
+
+- Do **not** size it with `height: env(safe-area-inset-bottom)` — Safari reports
+  that inset as `0` while the floating bottom toolbar is visible, collapsing the
+  strip below the 3px threshold so it stops qualifying. Use
+  `height: max(env(safe-area-inset-bottom, 0px), 16px)`.
+- Give it **no `z-index`** so it paints behind the content (invisible) while still
+  being sampled; otherwise it can cover real UI at the bottom edge.
+- Set a sensible **solid default colour in CSS** so it (and `<body>`) tint correctly
+  at first paint, before any JS (e.g. geolocation) resolves. JS updates to the
+  qualifying element / `<body>` background *do* re-tint the bars live.
+
+This is invisible to desktop/headless browsers — verify on a real iOS device via
+the githack preview. Reference (all reverse-engineered, no Apple docs):
+`github.com/andesco/safari-color-tinting`, `1ar.io/updates/safari-26-liquid-glass-web`,
+`nasedk.in/blog/ios26-safari-toolbar-colors`, `jahir.dev/blog/safari-toolbar`.
+
 ## Working style
 
 - Prefer vanilla HTML/CSS/JS over frameworks unless the project is specifically exploring a framework
