@@ -111,18 +111,13 @@
   .meta h2 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 24px; margin: 12px 0 6px; letter-spacing: -0.01em; }
   .meta p { color: var(--muted); font-size: 14.5px; line-height: 1.5; font-weight: 500; }
 
-  /* sun preview — dark atmospheric style matching the actual app (always dark, no light variant) */
-  .sun-scene { width: 100%; height: 100%; background: linear-gradient(180deg, #0b0d18 0%, #3a324e 65%, #5a3a32 100%); position: relative; }
-  .sun-scene .arc path { fill: none; stroke: rgba(224,138,106,0.5); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
-  .sun-body { position: absolute; width: 30px; height: 30px; border-radius: 50%;
-    background: #e08a6a;
-    box-shadow: 0 0 16px 6px rgba(224,138,106,0.7);
-    offset-path: path('M 18 152 A 124 116 0 0 1 262 152'); animation: travel 7s ease-in-out infinite alternate; }
-  @keyframes travel { from{ offset-distance: 2%; } to{ offset-distance: 98%; } }
-  .horizon { position: absolute; left:0; right:0; bottom:0; height: 38px; background: linear-gradient(180deg, transparent, rgba(10,6,4,0.9)); }
+  /* sun preview — canvas-rendered dusk scene matching the actual app */
+  .sun-scene { width: 100%; height: 100%; display: block; }
 
-  /* life preview — matches app's #1a1a2e bg + #e94560 cell accent */
+  /* life preview — bg adapts to light/dark mode */
   .life-scene { width: 100%; height: 100%; display: block; background: #1a1a2e; }
+  html[data-theme="light"] .life-scene { background: #e8eeff; }
+  @media (prefers-color-scheme: light) { html[data-theme="auto"] .life-scene { background: #e8eeff; } }
 
   footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
   footer a { color: var(--text); text-decoration: none; padding: 6px 12px; border: 2px solid var(--card-brd); border-radius: 999px; background: var(--surface); box-shadow: 3px 3px 0 var(--shadow-col); transition: transform 0.15s, box-shadow 0.15s; }
@@ -154,7 +149,7 @@
   ];
 
   function previewHTML(kind) {
-    if (kind === "sun") return `<div class="sun-scene"><svg class="arc" viewBox="0 0 280 172" preserveAspectRatio="none"><path d="M 18 152 A 124 116 0 0 1 262 152"/></svg><div class="sun-body"></div><div class="horizon"></div></div>`;
+    if (kind === "sun") return `<canvas class="sun-scene"></canvas>`;
     if (kind === "life") return `<canvas class="life-scene"></canvas>`;
     return `<div style="width:100%;height:100%"></div>`;
   }
@@ -176,14 +171,11 @@
     const cell = 12, cols = Math.ceil(W/cell), rows = Math.ceil(H/cell);
     let grid = seed();
     function seed(){ return Array.from({length:rows},()=>Array.from({length:cols},()=>Math.random()>0.72?1:0)); }
-    function step(){
-      let alive = 0;
-      const next = grid.map((row,y)=>row.map((s,x)=>{ let n=0;
-        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ if(dx||dy) n+=grid[(y+dy+rows)%rows][(x+dx+cols)%cols]; }
-        const v=(n===3||(s&&n===2))?1:0; alive+=v; return v; }));
-      grid = next; if (alive < cols*rows*0.04) grid = seed();
+    function draw() {
+      const t = document.documentElement.getAttribute("data-theme");
+      const dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
       ctx.clearRect(0,0,W,H);
-      ctx.strokeStyle = 'rgba(15,52,96,0.6)'; ctx.lineWidth = 0.5;
+      ctx.strokeStyle = dark ? 'rgba(15,52,96,0.6)' : 'rgba(100,120,220,0.3)'; ctx.lineWidth = 0.5;
       ctx.beginPath();
       for(let x=0;x<=cols;x++){ ctx.moveTo(x*cell,0); ctx.lineTo(x*cell,H); }
       for(let y=0;y<=rows;y++){ ctx.moveTo(0,y*cell); ctx.lineTo(W,y*cell); }
@@ -191,15 +183,64 @@
       ctx.fillStyle = '#e94560';
       for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.fillRect(x*cell+0.5, y*cell+0.5, cell-1, cell-1); }
     }
-    step();
+    function advance(){
+      let alive = 0;
+      const next = grid.map((row,y)=>row.map((s,x)=>{ let n=0;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ if(dx||dy) n+=grid[(y+dy+rows)%rows][(x+dx+cols)%cols]; }
+        const v=(n===3||(s&&n===2))?1:0; alive+=v; return v; }));
+      grid = next; if (alive < cols*rows*0.04) grid = seed();
+    }
+    for (let i = 0; i < 5; i++) advance();
+    draw();
+    return draw;
   }
-  document.querySelectorAll(".life-scene").forEach(startLife);
+  function startSun(canvas) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    if (!W || !H) return;
+    canvas.width = W*dpr; canvas.height = H*dpr;
+    const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
+    const horizonY = H, peakH = H*0.58;
+    const sunriseMin = 348, sunsetMin = 1112, solarNoonMin = 730;
+    // Palette directly from the actual app at alt ≈ 6° (low afternoon sun)
+    // sky:#e8a574 horizon:#ffc88a bg:#c08254 → derived: mix(horizon,bg,0.35)=#e9b077 darken(bg,0.08)=#b1784d darken(bg,0.32)=#835839
+    // All-sky dusk gradient — palette from actual app across civil dusk → just-after-sunset
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#2a2236');
+    grad.addColorStop(0.45, '#3a324e');
+    grad.addColorStop(0.8, '#85513a');
+    grad.addColorStop(1, '#c4753a');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    // Arc geometry helper — x spans the ±7h arc range so the sinusoidal shape fills the canvas
+    const arcStart = solarNoonMin - 420, arcSpan = 840;
+    function arcPt(m) {
+      const hc = Math.cos(Math.PI*(sunsetMin-sunriseMin)/(60*24));
+      const phi = ((m-solarNoonMin)/720)*Math.PI;
+      return { x: ((m-arcStart)/arcSpan)*W, y: horizonY-(Math.cos(phi)-hc)/Math.max(1-hc,0.01)*peakH };
+    }
+    // Arc spanning ±7h from solar noon — below-horizon ends clip at canvas edge
+    ctx.strokeStyle = 'rgba(224,138,106,0.65)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i=0; i<=120; i++) {
+      const pt = arcPt(arcStart + (i/120)*arcSpan);
+      i===0 ? ctx.moveTo(pt.x,pt.y) : ctx.lineTo(pt.x,pt.y);
+    }
+    ctx.stroke();
+    // Sun disc: late afternoon, well above horizon
+    const sun = arcPt(solarNoonMin + 280);
+    ctx.fillStyle = '#e08a6a';
+    ctx.beginPath(); ctx.arc(sun.x, sun.y, 8, 0, Math.PI*2); ctx.fill();
+  }
+  const lifeRedraws = [];
+  document.querySelectorAll(".life-scene").forEach(c => lifeRedraws.push(startLife(c)));
+  document.querySelectorAll(".sun-scene").forEach(startSun);
 
   const root = document.documentElement, btn = document.getElementById("themeBtn");
   btn.addEventListener("click", () => {
     const order = ["auto","light","dark"], cur = root.getAttribute("data-theme") || "auto";
     const next = order[(order.indexOf(cur)+1)%order.length];
     root.setAttribute("data-theme", next); localStorage.setItem("pg-theme", next);
+    lifeRedraws.forEach(fn => fn());
   });
 </script>
 <script type="module">
