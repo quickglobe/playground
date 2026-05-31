@@ -183,15 +183,15 @@
       ctx.fillStyle = '#e94560';
       for(let y=0;y<rows;y++)for(let x=0;x<cols;x++) if(grid[y][x]){ ctx.fillRect(x*cell+0.5, y*cell+0.5, cell-1, cell-1); }
     }
-    function step(){
+    function advance(){
       let alive = 0;
       const next = grid.map((row,y)=>row.map((s,x)=>{ let n=0;
         for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ if(dx||dy) n+=grid[(y+dy+rows)%rows][(x+dx+cols)%cols]; }
         const v=(n===3||(s&&n===2))?1:0; alive+=v; return v; }));
       grid = next; if (alive < cols*rows*0.04) grid = seed();
-      draw();
     }
-    step();
+    for (let i = 0; i < 5; i++) advance();
+    draw();
     return draw;
   }
   function startSun(canvas) {
