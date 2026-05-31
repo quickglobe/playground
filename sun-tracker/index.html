@@ -339,44 +339,41 @@ body {
   pointer-events: none;
 }
 
-/* ── Full-bleed safe-area tint anchors ───────────────────
+/* ── Full-bleed safe-area chrome tinting ─────────────────
    iOS 26 Safari (Liquid Glass) ignores the theme-color meta and
-   instead tints each system bar INDEPENDENTLY from the background
-   colour of a position:fixed element nearest that edge — the top
-   status bar from a strip near the top, the bottom toolbar from a
-   strip near the bottom — falling back to the <body> background.
-   A strip only qualifies if it sits within 4px of the top / 3px of
-   the bottom, is >=80% wide, and is >=3px tall, with the colour on
-   the element itself. Two fixed strips filling the safe-area insets
-   therefore let the status bar follow the sky and the bottom bar
-   follow the ground, matching the canvas gradient (top edge p.sky,
-   bottom edge darken(p.bg)). They carry a solid colour from first
-   paint so they qualify before JS computes the live palette, and
-   collapse to zero height (no inset) on desktop / non-notched
-   devices, where they have no visible effect. */
-#safe-top, #safe-bottom {
+   derives each system bar's tint from the page CSS. This is a
+   non-scrolling full-screen app (html/body overflow:hidden), so
+   scrollY is pinned at 0 — and in that state Safari samples the
+   TOP status bar purely from the <body> background colour (fixed
+   elements are not consulted for the top while scrollY is 0).
+   The BOTTOM toolbar, however, does sample a position:fixed
+   element nearest the bottom edge, falling back to <body>.
+
+   So: the <body> background is driven to the sky colour (it tints
+   the status bar), and a single fixed strip in the bottom safe
+   area is driven to the ground colour to override the bottom
+   toolbar. Using one fixed element avoids the "Safari picks one"
+   ambiguity that arises with both a top and bottom fixed element.
+   The strip carries a solid colour from first paint so it
+   qualifies before JS computes the live palette, and collapses to
+   zero height where there is no bottom inset. The qualifying
+   thresholds are >=80% wide, >=3px tall, within 3px of the edge,
+   with the colour on the element itself. */
+#safe-bottom {
   position: fixed;
   left: 0;
+  bottom: 0;
   width: 100%;
+  height: env(safe-area-inset-bottom, 0px);
   z-index: 100;
   pointer-events: none;
-  transition: background-color 1.2s ease;
-}
-#safe-top {
-  top: 0;
-  height: env(safe-area-inset-top, 0px);
-  background-color: #0a0c16;
-}
-#safe-bottom {
-  bottom: 0;
-  height: env(safe-area-inset-bottom, 0px);
   background-color: #05050b;
+  transition: background-color 1.2s ease;
 }
 </style>
 </head>
 <body>
 
-<div id="safe-top"></div>
 <div id="safe-bottom"></div>
 
 <div id="root">
@@ -842,18 +839,14 @@ function applyPalette(palette) {
 
   // Full bleed: drive the OS chrome from the gradient's edge colours.
   // The sky gradient runs from p.sky at the top to darken(p.bg, 0.32) at
-  // the bottom (see drawScene), so the two fixed safe-area strips reuse
-  // those exact colours. iOS 26 Safari samples each strip's background
-  // independently for the bar nearest it, so the status bar follows the
-  // sky and the bottom toolbar follows the ground; updating the strips
-  // here re-tints the bars as the palette shifts through the day.
+  // the bottom (see drawScene). On iOS 26 this non-scrolling app tints
+  // the top status bar from the <body> background (so it gets the sky)
+  // and the bottom toolbar from the fixed #safe-bottom strip (so it gets
+  // the ground). Both update live as the palette shifts through the day.
   const skyTop    = p.sky || '#0a0c16';
   const groundEnd = darken(p.bg || '#070710', 0.32);
-  document.getElementById('safe-top').style.backgroundColor    = skyTop;
+  document.body.style.background = skyTop;
   document.getElementById('safe-bottom').style.backgroundColor = groundEnd;
-  // <body> background is Safari's fallback when a strip can't be sampled
-  // (e.g. no safe-area inset), and tints the overscroll rubber-band.
-  document.body.style.background = groundEnd;
   // theme-color is ignored by Safari 26 but still honoured by older iOS
   // and Android Chrome, where it colours the top status bar.
   const themeMeta = document.querySelector('meta[name="theme-color"]');
