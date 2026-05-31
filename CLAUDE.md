@@ -35,6 +35,15 @@ To add icons for a new project:
 
 Browsers cache favicons aggressively; a hard refresh (or re-adding the home-screen bookmark on iOS) may be needed to see updates.
 
+## Previewing changes and pull requests
+
+Sessions often run in the cloud and are driven from a phone, so the only "preview" is the deployed GitHub Pages site — and that only reflects `main`. To avoid a merge / test / fix / merge-again loop:
+
+- **Keep the PR open until the change is confirmed working.** Push iterative fixes as new commits to the same branch rather than opening a fresh PR each round. Merge only once it is verified.
+- **Preview a branch without merging via raw.githack.** For a self-contained file, open `https://raw.githack.com/quickglobe/playground/<branch>/<project>/index.html` on the device. It serves over HTTPS with correct content types, so the page renders and HTTPS-only APIs (geolocation, etc.) work. Use this to check on a real device before merging.
+- **Some things only reproduce on a real device** (e.g. iOS Safari status bar / toolbar tinting), so a device check via the githack link is the last step before merge — desktop/headless browsers will not show them.
+- For changes that do not depend on device chrome (layout, JS logic, canvas), they can be verified headlessly in the session before the user ever looks.
+
 ## Working style
 
 - Prefer vanilla HTML/CSS/JS over frameworks unless the project is specifically exploring a framework
