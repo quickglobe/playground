@@ -166,6 +166,12 @@
     font-size: 0.8rem;
     color: var(--muted);
     white-space: nowrap;
+    /* Flush-right (pushed by .sep) but sized in JS to the Clear button's width
+       with the text left-aligned, so its left edge lines up with the Clear
+       button below and stays put as the generation count grows rightward
+       instead of shifting the whole label left. */
+    display: inline-block;
+    text-align: left;
   }
 
   /* Stage fills the leftover space and centres the box; its padding is the
@@ -291,6 +297,7 @@ const btnPlay = document.getElementById('btn-play');
 const speedSlider = document.getElementById('speed-slider');
 const speedVal = document.getElementById('speed-val');
 const genCounter = document.getElementById('gen-counter');
+const btnClear = document.getElementById('btn-clear');
 
 // ── grid helpers ──────────────────────────────────────────────────────────────
 
@@ -337,6 +344,14 @@ function initSize() {
   nextGrid = makeGrid(cols, rows);
   generation = 0;
   updateGen();
+  alignGenCounter();
+}
+
+// Match the gen counter's width to the Clear button so, with both flush to the
+// toolbar's right edge, their left edges line up and the counter grows
+// rightward rather than drifting left as the number gets longer.
+function alignGenCounter() {
+  genCounter.style.width = btnClear.offsetWidth + 'px';
 }
 
 function randomize() {
