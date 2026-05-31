@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#070710">
+<meta name="theme-color" content="#0a0c16">
 <title>Sun Tracker</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -22,12 +22,13 @@ html, body {
 }
 
 body {
-  background: #070710;
+  background: #0a0c16;
   font-family: 'Spectral', 'Source Serif Pro', Georgia, serif;
   font-feature-settings: 'tnum' 1;
   -webkit-user-select: none;
   user-select: none;
   touch-action: none;
+  transition: background-color 1.2s ease;
 }
 
 #root {
@@ -849,7 +850,7 @@ function applyPalette(palette) {
   // the ground). Both update live as the palette shifts through the day.
   const skyTop    = p.sky || '#0a0c16';
   const groundEnd = darken(p.bg || '#070710', 0.32);
-  document.body.style.background = skyTop;
+  document.body.style.backgroundColor = skyTop;
   document.getElementById('safe-bottom').style.backgroundColor = groundEnd;
   // theme-color is ignored by Safari 26 but still honoured by older iOS
   // and Android Chrome, where it colours the top status bar.
@@ -863,6 +864,60 @@ let today = null, yesterday = null;
 let pos = null;
 let palette = null;
 let lastDateStr = null;
+let revealing = false;
+
+// Pre-location holding values: the dark night palette and a neutral
+// almanac. These are the canvas/UI's starting point, tweened toward the
+// real located values once geolocation resolves.
+const NIGHT = paletteForAltitude(-90);
+const DEFAULT_ALM = { sunrise: 360, sunset: 1080, solarNoon: 720 };
+
+const currentMinute = now => now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+
+function setClockText(now) {
+  const s = fmtClock24(currentMinute(now));
+  document.getElementById('p-clock').textContent = s;
+  document.getElementById('l-clock').textContent = s;
+}
+
+function setDateText(now) {
+  const s = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  document.getElementById('p-date').textContent = s;
+  document.getElementById('l-date').textContent = s;
+}
+
+function lerpPalette(a, b, t) {
+  return {
+    bg:      lerpHex(a.bg,      b.bg,      t),
+    sky:     lerpHex(a.sky,     b.sky,     t),
+    horizon: lerpHex(a.horizon, b.horizon, t),
+    ink:     lerpHex(a.ink,     b.ink,     t),
+    dim:     lerpHex(a.dim,     b.dim,     t),
+    accent:  lerpHex(a.accent,  b.accent,  t),
+  };
+}
+
+// Sampler for a CSS cubic-bezier timing function, so the JS canvas tween
+// eases identically to the CSS colour/background transitions (which use
+// the default "ease" curve) and they move together.
+function cubicBezier(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const fx = t => ((ax * t + bx) * t + cx) * t;
+  const fy = t => ((ay * t + by) * t + cy) * t;
+  const dfx = t => (3 * ax * t + 2 * bx) * t + cx;
+  return p => {
+    let t = p;
+    for (let i = 0; i < 6; i++) {
+      const x = fx(t) - p, d = dfx(t);
+      if (Math.abs(x) < 1e-4 || d === 0) break;
+      t -= x / d;
+    }
+    return fy(t);
+  };
+}
+const easeStd = cubicBezier(0.25, 0.1, 0.25, 1);
+const REVEAL_MS = 1200;
 
 function recompute(now) {
   if (lat == null) return;
@@ -877,11 +932,14 @@ function updateUI(now) {
   pos     = altitudeAt(now, lat, lon);
   palette = paletteForAltitude(pos.alt);
 
-  const nowMin = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-  const W = window.innerWidth, H = window.innerHeight;
-  drawScene(W, H, palette, today, nowMin, pos);
+  const nowMin = currentMinute(now);
+  drawScene(window.innerWidth, window.innerHeight, palette, today, nowMin, pos);
   applyPalette(palette);
 
+  updateReadouts(now, nowMin);
+}
+
+function updateReadouts(now, nowMin) {
   const clockStr = fmtClock24(nowMin);
   document.getElementById('p-clock').textContent = clockStr;
   document.getElementById('l-clock').textContent = clockStr;
@@ -946,24 +1004,71 @@ function revealData() {
   });
 }
 
+// ── Reveal transition ─────────────────────────────────────────────────
+// Animate from the dark holding state to the located palette: the canvas
+// (colours + arc geometry + sun altitude) is tweened in JS, while the
+// chrome (<body>, #safe-bottom) and text colours ride their CSS
+// transitions. Both use the same "ease" curve and duration, so the scene
+// and the OS bars move together instead of snapping.
+function startReveal(now) {
+  revealing = true;
+
+  pos = altitudeAt(now, lat, lon);
+  const target = paletteForAltitude(pos.alt);
+  palette = target;
+
+  const nowMin = currentMinute(now);
+  updateReadouts(now, nowMin);   // populates today + all stat values
+  applyPalette(target);          // CSS fades chrome + text night -> located
+  revealData();                  // fades the stat blocks in
+
+  const realAlt = pos.alt;
+  const tgt = {
+    sunrise:   today && today.sunrise   != null ? today.sunrise   : DEFAULT_ALM.sunrise,
+    sunset:    today && today.sunset    != null ? today.sunset    : DEFAULT_ALM.sunset,
+    solarNoon: today && today.solarNoon != null ? today.solarNoon : DEFAULT_ALM.solarNoon,
+  };
+  const start = performance.now();
+
+  function frame(t) {
+    const k = Math.min(1, (t - start) / REVEAL_MS);
+    const e = easeStd(k);
+    const pal = lerpPalette(NIGHT, target, e);
+    const alm = {
+      sunrise:   DEFAULT_ALM.sunrise   + (tgt.sunrise   - DEFAULT_ALM.sunrise)   * e,
+      sunset:    DEFAULT_ALM.sunset    + (tgt.sunset    - DEFAULT_ALM.sunset)    * e,
+      solarNoon: DEFAULT_ALM.solarNoon + (tgt.solarNoon - DEFAULT_ALM.solarNoon) * e,
+    };
+    const ap = { alt: -90 + (realAlt + 90) * e };
+    drawScene(window.innerWidth, window.innerHeight, pal, alm, currentMinute(new Date()), ap);
+    if (k < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      revealing = false;
+      updateUI(new Date());
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
 // ── Tick ──────────────────────────────────────────────────────────────
 function tick() {
   const now = new Date();
   if (lat == null) {
-    const W = window.innerWidth, H = window.innerHeight;
-    drawScene(W, H, null, null, 0, null);
-    const nowMin = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-    const clockStr = fmtClock24(nowMin);
-    document.getElementById('p-clock').textContent = clockStr;
-    document.getElementById('l-clock').textContent = clockStr;
-    const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-    document.getElementById('p-date').textContent = dateStr;
-    document.getElementById('l-date').textContent = dateStr;
+    drawScene(window.innerWidth, window.innerHeight, NIGHT, DEFAULT_ALM, currentMinute(now), null);
+    applyPalette(NIGHT);
+    setClockText(now);
+    setDateText(now);
     return;
   }
   if (!dataRevealed) {
     dataRevealed = true;
-    revealData();
+    startReveal(now);
+    return;
+  }
+  if (revealing) {
+    setClockText(now);
+    return;
   }
   updateUI(now);
 }
