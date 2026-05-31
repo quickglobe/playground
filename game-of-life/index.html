@@ -355,14 +355,22 @@ function initSize() {
   alignGenCounter();
 }
 
+// The two font sizes the counter snaps between: one that fits up to 3 digits
+// (used for the common 0-999 case, so 1-, 2- and 3-digit counts all render at
+// the same size and never shift), and a smaller one that fits a 4th digit.
+let genFont3 = '';
+let genFont4 = '';
+
 // Size the gen-counter block to the Clear button's width so, with both flush to
-// the toolbar's right edge, the block sits exactly above the button. Then shrink
-// the font (only if needed) so the realistic 4-digit maximum "Gen 8888" fits the
-// block's inner width on whatever font the device actually renders.
+// the toolbar's right edge, the block sits exactly above the button. Then work
+// out the two font sizes so "Gen 888" / "Gen 8888" fit the block's inner width
+// on whatever font the device actually renders (never enlarging past the CSS
+// default), and apply the one for the current count.
 function alignGenCounter() {
   genCounter.style.width = btnClear.offsetWidth + 'px';
   genCounter.style.fontSize = '';
   const cs = getComputedStyle(genCounter);
+  const base = parseFloat(cs.fontSize);
   const innerW = genCounter.clientWidth
     - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const probe = document.createElement('span');
@@ -370,12 +378,22 @@ function alignGenCounter() {
   probe.style.fontFamily = cs.fontFamily;
   probe.style.fontWeight = cs.fontWeight;
   probe.style.fontSize = cs.fontSize;
-  probe.textContent = 'Gen 8888';
   document.body.appendChild(probe);
-  if (probe.offsetWidth > innerW) {
-    genCounter.style.fontSize = parseFloat(cs.fontSize) * innerW / probe.offsetWidth + 'px';
-  }
+  const fit = text => {
+    probe.textContent = text;
+    return probe.offsetWidth > innerW ? base * innerW / probe.offsetWidth : base;
+  };
+  genFont3 = fit('Gen 888');
+  genFont4 = fit('Gen 8888');
   probe.remove();
+  applyGenFont();
+}
+
+// Use the larger 1-3 digit size until the count reaches 4 digits, then snap to
+// the smaller one. Keeps the block static through 0-999 and updates only at 1000.
+function applyGenFont() {
+  if (genFont3 === '') return;
+  genCounter.style.fontSize = (generation >= 1000 ? genFont4 : genFont3) + 'px';
 }
 
 function randomize() {
@@ -464,6 +482,7 @@ function loop(ts) {
 
 function updateGen() {
   genCounter.textContent = `Gen ${generation}`;
+  applyGenFont();
 }
 
 function setRunning(val) {
