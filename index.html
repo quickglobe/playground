@@ -86,8 +86,10 @@
   /* sun preview — canvas-rendered dusk scene matching the actual app */
   .sun-scene { width: 100%; height: 100%; display: block; }
 
-  /* life preview — bg adapts to light/dark mode, matching the actual app palette */
-  .life-scene { width: 100%; height: 100%; display: block; background: #f0f4ff; }
+  /* life preview — bg adapts to light/dark mode, matching the actual app palette.
+     Rendered at CSS resolution + pixelated upscale (like the app) so cells and
+     grid lines stay crisp instead of antialiasing under a fractional DPR. */
+  .life-scene { width: 100%; height: 100%; display: block; background: #f0f4ff; image-rendering: pixelated; }
   @media (prefers-color-scheme: dark) { .life-scene { background: #1a1a2e; } }
 
   footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
@@ -133,11 +135,13 @@
   });
 
   function startLife(canvas) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const W = canvas.clientWidth, H = canvas.clientHeight;
     if (!W || !H) return;
-    canvas.width = W*dpr; canvas.height = H*dpr;
-    const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
+    // Render at CSS resolution; the canvas is upscaled to the device with
+    // image-rendering: pixelated (set in CSS), exactly like the main app, so
+    // every cell and grid line snaps to a whole pixel with no antialiasing.
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
 
     // The main app sizes its box to an exact integer number of CELL-sized cells
     // so the grid is flush with the box border (no clipped cell, no gap). The
