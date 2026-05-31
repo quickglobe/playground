@@ -166,6 +166,7 @@
     font-size: 0.8rem;
     color: var(--muted);
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* Stage fills the leftover space and centres the box; its padding is the
@@ -222,9 +223,9 @@
 
 <div id="toolbar">
   <div id="toolbar-top">
+    <span id="gen-counter">Gen 0</span>
     <h1>Game of Life</h1>
     <span class="sep"></span>
-    <span id="gen-counter">Gen 0</span>
   </div>
   <div id="toolbar-bottom">
     <button id="btn-play">Play</button>
