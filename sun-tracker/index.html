@@ -354,18 +354,22 @@ body {
    area is driven to the ground colour to override the bottom
    toolbar. Using one fixed element avoids the "Safari picks one"
    ambiguity that arises with both a top and bottom fixed element.
-   The strip carries a solid colour from first paint so it
-   qualifies before JS computes the live palette, and collapses to
-   zero height where there is no bottom inset. The qualifying
-   thresholds are >=80% wide, >=3px tall, within 3px of the edge,
-   with the colour on the element itself. */
+
+   The strip must satisfy Safari's qualifying thresholds: >=80%
+   wide, >=3px tall, within 3px of the bottom edge, with the colour
+   on the element itself. Crucially the height must NOT be tied to
+   env(safe-area-inset-bottom): Safari reports that inset as 0 while
+   the floating bottom toolbar is visible, which would collapse the
+   strip and disqualify it. A fixed minimum height keeps it valid in
+   every toolbar state. It carries no z-index, so it paints behind
+   #root (the canvas covers it) and stays invisible while Safari
+   still samples its background-colour for the toolbar tint. */
 #safe-bottom {
   position: fixed;
   left: 0;
   bottom: 0;
   width: 100%;
-  height: env(safe-area-inset-bottom, 0px);
-  z-index: 100;
+  height: max(env(safe-area-inset-bottom, 0px), 16px);
   pointer-events: none;
   background-color: #05050b;
   transition: background-color 1.2s ease;
