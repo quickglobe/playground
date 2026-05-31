@@ -116,7 +116,7 @@
     -webkit-appearance: none;
     flex: 1;
     min-width: 50px;
-    max-width: 140px;
+    max-width: 220px;
     height: 4px;
     border-radius: 2px;
     background: var(--range-track);
@@ -140,7 +140,7 @@
 
   @media (pointer: coarse) {
     input[type=range] {
-      max-width: 200px;
+      max-width: none;
       height: 6px;
       border-radius: 3px;
     }
@@ -201,7 +201,6 @@
       <input type="range" id="speed-slider" min="1" max="30" value="10">
       <span id="speed-val">10 fps</span>
     </div>
-    <span class="sep"></span>
     <button id="btn-random">Random</button>
     <button id="btn-clear">Clear</button>
   </div>
