@@ -162,16 +162,24 @@
     }
   }
 
+  /* A code-fence style block, flush-right (pushed by .sep) and sized in JS to
+     the Clear button's width so its left/right edges line up exactly with the
+     button below it. Tighter horizontal padding than the buttons, and the font
+     is auto-fit in JS so the realistic 4-digit maximum still fits; centred text
+     keeps the count growing symmetrically without shifting the block. */
   #gen-counter {
-    font-size: 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    line-height: 1;
     color: var(--muted);
     white-space: nowrap;
-    /* Flush-right (pushed by .sep) but sized/offset in JS so its left edge sits
-       where a centred 4-digit label over the Clear button would start. The text
-       is left-aligned, so the count grows rightward from that fixed anchor
-       instead of shifting the whole label left. See alignGenCounter(). */
     display: inline-block;
-    text-align: left;
+    text-align: center;
+    padding: 6px 5px;
+    background: var(--badge-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
   }
 
   /* Stage fills the leftover space and centres the box; its padding is the
@@ -347,28 +355,27 @@ function initSize() {
   alignGenCounter();
 }
 
-// Pin the gen counter's left edge to where a 4-digit label ("Gen 8888" - the
-// realistic maximum on a grid this size) would start if it were centred over
-// the Clear button. The counter is left-aligned and flush to the toolbar's
-// right edge, so we give it that 4-digit width and a right margin of half the
-// slack between it and the button: the box (and thus the fixed left anchor)
-// lands at the centred position, and shorter counts grow rightward from there
-// instead of drifting left. Visually this balances better than a flush left
-// edge, which the button's rounded corners make look too far left.
+// Size the gen-counter block to the Clear button's width so, with both flush to
+// the toolbar's right edge, the block sits exactly above the button. Then shrink
+// the font (only if needed) so the realistic 4-digit maximum "Gen 8888" fits the
+// block's inner width on whatever font the device actually renders.
 function alignGenCounter() {
+  genCounter.style.width = btnClear.offsetWidth + 'px';
+  genCounter.style.fontSize = '';
   const cs = getComputedStyle(genCounter);
+  const innerW = genCounter.clientWidth
+    - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const probe = document.createElement('span');
   probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
-  probe.style.fontSize = cs.fontSize;
   probe.style.fontFamily = cs.fontFamily;
   probe.style.fontWeight = cs.fontWeight;
+  probe.style.fontSize = cs.fontSize;
   probe.textContent = 'Gen 8888';
   document.body.appendChild(probe);
-  const textW = probe.offsetWidth;
+  if (probe.offsetWidth > innerW) {
+    genCounter.style.fontSize = parseFloat(cs.fontSize) * innerW / probe.offsetWidth + 'px';
+  }
   probe.remove();
-
-  genCounter.style.width = textW + 'px';
-  genCounter.style.marginRight = Math.max(0, (btnClear.offsetWidth - textW) / 2) + 'px';
 }
 
 function randomize() {
