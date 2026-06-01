@@ -74,6 +74,12 @@
   .card {
     text-decoration: none; color: inherit; background: var(--surface);
     border-radius: 26px; padding: 14px; position: relative; display: block;
+    /* Fill the grid-stretched wrapper so the 3px frame stays uniform on all
+       four sides. Without this, shorter cards leave the dark .card-wrap
+       background showing as a band at the bottom (reads as a stray "shadow"),
+       which only appears on desktop where the grid stretches cards to equal
+       height — not on mobile's single column. */
+    height: 100%;
   }
   .preview-wrap { background: var(--card-brd); padding: 3px; border-radius: 21px; }
   .preview { height: 172px; border-radius: 18px; overflow: hidden; position: relative; }
