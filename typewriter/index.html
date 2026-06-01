@@ -29,9 +29,9 @@
     --muted:#6c6157;
     color-scheme:light;
   }
-  /* dark theme, shared by the system preference and the explicit toggle */
+  /* dark theme, following the OS preference */
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
+    :root {
       --bg:#0e1016; --fg:#e8ebf2; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
       --body:#2a625d; --body-2:#21524e; --body-3:#173e3b;
       --deck:#173e3b; --wall:#102e2c;
@@ -43,18 +43,6 @@
       --muted:#9aa3b5;
       color-scheme:dark;
     }
-  }
-  [data-theme="dark"] {
-    --bg:#0e1016; --fg:#e8ebf2; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
-    --body:#2a625d; --body-2:#21524e; --body-3:#173e3b;
-    --deck:#173e3b; --wall:#102e2c;
-    --platen:#121218; --platen-hi:#30313b; --knob:#08080c; --knob-hi:#2a2c38;
-    --bail:#4a505c;
-    --keycap:#333a49; --key-edge:#525a6b; --key-ink:#e6e9f0; --key-down:#444c5d;
-    --keyfn:#3f4859; --typebar:#525a66;
-    --panel:#171b24; --btn-bg:#171b24; --btn-edge:#b9c2d4; --shadow:#05070c;
-    --muted:#9aa3b5;
-    color-scheme:dark;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -135,9 +123,6 @@
   button:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
   button:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--shadow); }
   .hint { color: var(--muted); font-size: 13px; margin-top: 2px; }
-  .back { margin-top: 18px; }
-  .back a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; }
-  .back a:hover { color: var(--fg); }
 
   /* ---- view-document overlay ---- */
   .overlay {
@@ -251,11 +236,8 @@
   <div class="controls">
     <button id="btn-view">View document</button>
     <button id="btn-reset">Reset</button>
-    <button id="btn-theme">Theme: System</button>
   </div>
   <p class="hint" id="hint">A physical keyboard works too. Press Return for a new line.</p>
-
-  <div class="back"><a href="../">&larr; Back to Playground</a></div>
 
   <!-- view-document overlay -->
   <div class="overlay" id="overlay" aria-hidden="true">
@@ -533,27 +515,14 @@
     toastTimer = setTimeout(function () { t.style.opacity = "0"; t.style.transition = "opacity .4s"; }, 1800);
   }
 
-  // ----- theme -----
+  // ----- theme: follow the OS preference; keep the chrome tint colour in sync -----
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
-  var themeBtn = document.getElementById("btn-theme");
   var meta = document.querySelector('meta[name="theme-color"]');
-  function applyTheme() {
-    var s = localStorage.getItem("tw-theme") || "system";
-    var root = document.documentElement;
-    if (s === "system") root.removeAttribute("data-theme");
-    else root.setAttribute("data-theme", s);
-    themeBtn.textContent = "Theme: " + s.charAt(0).toUpperCase() + s.slice(1);
-    var dark = s === "dark" || (s === "system" && mq.matches);
-    meta.setAttribute("content", dark ? "#0e1016" : "#efe7d8");
+  function syncThemeColor() {
+    meta.setAttribute("content", mq.matches ? "#0e1016" : "#efe7d8");
   }
-  themeBtn.addEventListener("click", function () {
-    var order = ["system", "light", "dark"];
-    var s = localStorage.getItem("tw-theme") || "system";
-    localStorage.setItem("tw-theme", order[(order.indexOf(s) + 1) % 3]);
-    applyTheme();
-  });
-  mq.addEventListener("change", applyTheme);
-  applyTheme();
+  mq.addEventListener("change", syncThemeColor);
+  syncThemeColor();
 
   // ----- boot -----
   render();
