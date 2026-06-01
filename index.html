@@ -64,10 +64,11 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: clamp(20px,3.5vw,30px); }
   .card-wrap {
     background: var(--card-brd); padding: 3px; border-radius: 29px;
+    will-change: transform;
   }
   @media (hover: hover) and (pointer: fine) {
     .card-wrap { transition: transform 0.22s cubic-bezier(.34,1.56,.64,1); }
-    .card-wrap:has(.card:hover) { transform: translate(-4px,-4px) rotate(-0.6deg); }
+    .card-wrap:has(.card:hover) { transform: translate(-4px,-4px); }
     .card-wrap:has(.card:active) { transform: translate(2px,2px); }
   }
   .card-wrap:has(.card:focus-visible) { outline: 3px solid var(--blue); outline-offset: 4px; }
