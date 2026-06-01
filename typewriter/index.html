@@ -16,7 +16,9 @@
 <style>
   :root {
     /* light theme (also the default before any JS) */
-    --bg:#efe7d8; --ink:#26313a; --paper:#fffdf6; --paper-edge:#d8cdb8;
+    /* --fg is UI text on --bg; --ink is typewriter text on --paper (kept separate
+       so dark mode doesn't paint dark UI text on a dark background) */
+    --bg:#efe7d8; --fg:#26313a; --ink:#26313a; --paper:#fffdf6; --paper-edge:#d8cdb8;
     --body:#2f6f6a; --body-2:#27605c; --body-3:#1f4f4b;
     --deck:#244f4b; --wall:#1a423f;
     --platen:#2b2b30; --platen-hi:#43434c; --knob:#191a1e; --knob-hi:#3a3b42;
@@ -30,7 +32,7 @@
   /* dark theme, shared by the system preference and the explicit toggle */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg:#0e1016; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
+      --bg:#0e1016; --fg:#e8ebf2; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
       --body:#2a625d; --body-2:#21524e; --body-3:#173e3b;
       --deck:#173e3b; --wall:#102e2c;
       --platen:#121218; --platen-hi:#30313b; --knob:#08080c; --knob-hi:#2a2c38;
@@ -43,7 +45,7 @@
     }
   }
   [data-theme="dark"] {
-    --bg:#0e1016; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
+    --bg:#0e1016; --fg:#e8ebf2; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
     --body:#2a625d; --body-2:#21524e; --body-3:#173e3b;
     --deck:#173e3b; --wall:#102e2c;
     --platen:#121218; --platen-hi:#30313b; --knob:#08080c; --knob-hi:#2a2c38;
@@ -59,7 +61,7 @@
   html, body { height: 100%; }
   body {
     background: var(--bg);
-    color: var(--ink);
+    color: var(--fg);
     font-family: system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     display: flex;
@@ -125,7 +127,7 @@
   .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0 6px; }
   button {
     font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-    color: var(--ink); background: var(--btn-bg);
+    color: var(--fg); background: var(--btn-bg);
     border: 2px solid var(--btn-edge); border-radius: 999px;
     padding: 9px 16px; box-shadow: 3px 3px 0 var(--shadow);
     transition: transform .12s, box-shadow .12s; -webkit-tap-highlight-color: transparent;
@@ -135,7 +137,7 @@
   .hint { color: var(--muted); font-size: 13px; margin-top: 2px; }
   .back { margin-top: 18px; }
   .back a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; }
-  .back a:hover { color: var(--ink); }
+  .back a:hover { color: var(--fg); }
 
   /* ---- view-document overlay ---- */
   .overlay {
@@ -192,11 +194,16 @@
 
       <!-- the sheet of paper + printed text; feeds UP on return (vertical only, so it
            stays centred and never slides off-screen). The type-bar travels along the
-           line instead, keeping the whole line on the page at all times. -->
-      <g id="paperFeed" clip-path="url(#paperClip)">
-        <rect class="paper" x="150" y="120" width="460" height="1900" rx="7"/>
-        <rect x="150" y="120" width="460" height="1900" rx="7" fill="url(#paperShade)"/>
-        <g id="textLayer"></g>
+           line instead, keeping the whole line on the page at all times.
+           The clip is on the STATIC wrapper, not on #paperFeed: a userSpaceOnUse clip
+           on a translated element moves with it, which would drift the window off the
+           machine after a few returns. -->
+      <g clip-path="url(#paperClip)">
+        <g id="paperFeed">
+          <rect class="paper" x="150" y="120" width="460" height="1900" rx="7"/>
+          <rect x="150" y="120" width="460" height="1900" rx="7" fill="url(#paperShade)"/>
+          <g id="textLayer"></g>
+        </g>
       </g>
 
       <!-- platen roller + knobs (drawn over the paper so it appears to wrap behind) -->
@@ -517,7 +524,7 @@
     if (!t) {
       t = document.createElement("div"); t.id = "toast";
       t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);" +
-        "background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;" +
+        "background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;" +
         "font:600 14px system-ui;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.3);";
       document.body.appendChild(t);
     }
