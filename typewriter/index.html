@@ -9,56 +9,49 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<meta name="theme-color" content="#f4efe6">
+<meta name="theme-color" content="#efe7d8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#f4efe6; --ink:#26313a; --paper:#fffdf6; --paper-edge:#e7ded0;
+    /* light theme (also the default before any JS) */
+    --bg:#efe7d8; --ink:#26313a; --paper:#fffdf6; --paper-edge:#d8cdb8;
     --body:#2f6f6a; --body-2:#27605c; --body-3:#1f4f4b;
+    --deck:#244f4b; --wall:#1a423f;
     --platen:#2b2b30; --platen-hi:#43434c; --knob:#191a1e; --knob-hi:#3a3b42;
     --bail:#5a5a62;
     --keycap:#f4efe6; --key-edge:#cfc6b6; --key-ink:#393a3c; --key-down:#e2dbc9;
-    --keyfn:#d9cdb6; --typebar:#3a3a3f;
+    --keyfn:#d9cdb6; --typebar:#2f2f34;
     --panel:#fffdf6; --btn-bg:#fffdf6; --btn-edge:#26313a; --shadow:#26313a;
     --muted:#6c6157;
     color-scheme:light;
   }
+  /* dark theme, shared by the system preference and the explicit toggle */
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg:#14171f; --ink:#2c2722; --paper:#e9e3d4; --paper-edge:#cfc7b4;
-      --body:#1d3b39; --body-2:#173230; --body-3:#0f2422;
-      --platen:#0d0d11; --platen-hi:#26262e; --knob:#050507; --knob-hi:#22232a;
-      --bail:#3a3a42;
-      --keycap:#2a2f3a; --key-edge:#454c5a; --key-ink:#d7dbe4; --key-down:#3a414f;
-      --keyfn:#39414f; --typebar:#3a3f49;
-      --panel:#1c2029; --btn-bg:#1c2029; --btn-edge:#aab3c5; --shadow:#04060a;
-      --muted:#97a0b2;
+    :root:not([data-theme="light"]) {
+      --bg:#0e1016; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
+      --body:#2a625d; --body-2:#21524e; --body-3:#173e3b;
+      --deck:#173e3b; --wall:#102e2c;
+      --platen:#121218; --platen-hi:#30313b; --knob:#08080c; --knob-hi:#2a2c38;
+      --bail:#4a505c;
+      --keycap:#333a49; --key-edge:#525a6b; --key-ink:#e6e9f0; --key-down:#444c5d;
+      --keyfn:#3f4859; --typebar:#525a66;
+      --panel:#171b24; --btn-bg:#171b24; --btn-edge:#b9c2d4; --shadow:#05070c;
+      --muted:#9aa3b5;
       color-scheme:dark;
     }
   }
-  /* explicit overrides win over the system media query */
-  [data-theme="light"] {
-    --bg:#f4efe6; --ink:#26313a; --paper:#fffdf6; --paper-edge:#e7ded0;
-    --body:#2f6f6a; --body-2:#27605c; --body-3:#1f4f4b;
-    --platen:#2b2b30; --platen-hi:#43434c; --knob:#191a1e; --knob-hi:#3a3b42;
-    --bail:#5a5a62;
-    --keycap:#f4efe6; --key-edge:#cfc6b6; --key-ink:#393a3c; --key-down:#e2dbc9;
-    --keyfn:#d9cdb6; --typebar:#3a3a3f;
-    --panel:#fffdf6; --btn-bg:#fffdf6; --btn-edge:#26313a; --shadow:#26313a;
-    --muted:#6c6157;
-    color-scheme:light;
-  }
   [data-theme="dark"] {
-    --bg:#14171f; --ink:#2c2722; --paper:#e9e3d4; --paper-edge:#cfc7b4;
-    --body:#1d3b39; --body-2:#173230; --body-3:#0f2422;
-    --platen:#0d0d11; --platen-hi:#26262e; --knob:#050507; --knob-hi:#22232a;
-    --bail:#3a3a42;
-    --keycap:#2a2f3a; --key-edge:#454c5a; --key-ink:#d7dbe4; --key-down:#3a414f;
-    --keyfn:#39414f; --typebar:#3a3f49;
-    --panel:#1c2029; --btn-bg:#1c2029; --btn-edge:#aab3c5; --shadow:#04060a;
-    --muted:#97a0b2;
+    --bg:#0e1016; --ink:#2a2620; --paper:#ece6d7; --paper-edge:#bcb39d;
+    --body:#2a625d; --body-2:#21524e; --body-3:#173e3b;
+    --deck:#173e3b; --wall:#102e2c;
+    --platen:#121218; --platen-hi:#30313b; --knob:#08080c; --knob-hi:#2a2c38;
+    --bail:#4a505c;
+    --keycap:#333a49; --key-edge:#525a6b; --key-ink:#e6e9f0; --key-down:#444c5d;
+    --keyfn:#3f4859; --typebar:#525a66;
+    --panel:#171b24; --btn-bg:#171b24; --btn-edge:#b9c2d4; --shadow:#05070c;
+    --muted:#9aa3b5;
     color-scheme:dark;
   }
 
@@ -102,12 +95,15 @@
   .body       { fill: var(--body); }
   .body-2     { fill: var(--body-2); }
   .body-3     { fill: var(--body-3); }
+  .deck       { fill: var(--deck); }
+  .wall       { fill: var(--wall); }
+  .scale      { stroke: var(--bail); stroke-width: 2; opacity: 0.5; }
   .platen     { fill: var(--platen); }
   .platen-hi  { fill: var(--platen-hi); }
   .knob       { fill: var(--knob); }
   .knob-hi    { fill: var(--knob-hi); }
   .bail       { fill: var(--bail); }
-  .typebar    { fill: var(--typebar); transform-box: fill-box; transform-origin: bottom center; transform: rotate(56deg); }
+  .typebar    { fill: var(--typebar); transform-box: fill-box; transform-origin: bottom center; transform: rotate(72deg); }
   .lever      { fill: var(--knob); cursor: pointer; transform-box: fill-box; transform-origin: bottom right; transition: transform .12s ease; }
   .lever:active, .lever.pull { transform: rotate(-26deg); }
 
@@ -119,10 +115,11 @@
   .key.down .keytext { transform: translateY(3px); }
   .keytext, .keycap { transition: transform .07s ease, fill .07s ease; }
 
-  #carriage  { transition: transform 80ms linear; }
-  #carriage.returning { transition: transform 260ms cubic-bezier(.18,.7,.2,1); }
-  #paperFeed { transition: transform 80ms linear; }
-  #paperFeed.returning { transition: transform 260ms cubic-bezier(.18,.7,.2,1); }
+  /* type-bar slides along to the active column (and back on return) */
+  #typebarPos { transition: transform 70ms linear; }
+  #typebarPos.returning { transition: transform 240ms cubic-bezier(.2,.7,.2,1); }
+  /* paper feeds up smoothly on carriage return */
+  #paperFeed { transition: transform 240ms cubic-bezier(.18,.7,.2,1); }
 
   /* ---- controls ---- */
   .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0 6px; }
@@ -148,16 +145,24 @@
     overflow: auto;
   }
   .overlay.open { display: flex; flex-direction: column; align-items: center; }
+  /* a full sheet of paper: US-Letter aspect, generous margins, soft drop shadow */
   .doc {
     background: var(--paper); color: var(--ink);
-    width: 100%; max-width: 640px; margin: auto 0; border-radius: 6px;
-    box-shadow: 0 18px 50px rgba(0,0,0,.4); padding: 40px clamp(22px,6vw,56px);
+    width: 100%; max-width: 560px; margin: 0 auto 18px; border-radius: 2px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+    padding: clamp(40px,9%,72px) clamp(30px,11%,84px);
     border: 1px solid var(--paper-edge);
+    aspect-ratio: 8.5 / 11; min-height: min(80vh, 720px);
+    overflow: auto;
   }
-  .doc h2 { font-family: 'Cutive Mono', monospace; font-weight: 400; font-size: 15px; color: var(--muted); margin-bottom: 18px; letter-spacing: .05em; }
+  .doc h2 {
+    font-family: 'Cutive Mono', monospace; font-weight: 400; font-size: 12px;
+    color: var(--muted); margin-bottom: 22px; letter-spacing: .18em;
+    text-align: center; opacity: .7;
+  }
   .doc pre {
-    font-family: 'Cutive Mono', 'Courier New', monospace; font-size: 16px; line-height: 1.7;
-    white-space: pre-wrap; word-break: break-word; min-height: 1.7em;
+    font-family: 'Cutive Mono', 'Courier New', monospace; font-size: 16px; line-height: 1.8;
+    white-space: pre-wrap; word-break: break-word; min-height: 1.8em;
   }
   .doc .empty { color: var(--muted); font-style: italic; }
 </style>
@@ -169,58 +174,66 @@
   </header>
 
   <div class="stage" id="stage">
-    <svg id="tw" viewBox="0 0 760 580" role="img" aria-label="An interactive typewriter">
+    <svg id="tw" viewBox="0 0 760 600" role="img" aria-label="An interactive typewriter">
       <defs>
-        <clipPath id="stageClip"><rect x="40" y="-320" width="680" height="630"/></clipPath>
+        <!-- the paper window: typed text feeds up through here and is clipped at the top -->
+        <clipPath id="paperClip"><rect x="146" y="0" width="468" height="312"/></clipPath>
         <linearGradient id="paperShade" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="rgba(0,0,0,0.06)"/>
-          <stop offset="0.06" stop-color="rgba(0,0,0,0)"/>
-          <stop offset="0.94" stop-color="rgba(0,0,0,0)"/>
-          <stop offset="1" stop-color="rgba(0,0,0,0.06)"/>
+          <stop offset="0" stop-color="rgba(0,0,0,0.07)"/>
+          <stop offset="0.05" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="0.95" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="1" stop-color="rgba(0,0,0,0.07)"/>
         </linearGradient>
       </defs>
 
-      <!-- carriage assembly, clipped to the machine frame so it slides behind the sides -->
-      <g clip-path="url(#stageClip)">
-        <g id="carriage">
-          <!-- paper + printed text feed up together on return -->
-          <g id="paperFeed">
-            <rect class="paper" x="170" y="-1500" width="470" height="2360" rx="7"/>
-            <rect x="170" y="-1500" width="470" height="2360" rx="7" fill="url(#paperShade)"/>
-            <g id="textLayer"></g>
-          </g>
+      <!-- carriage rail / deck behind the platen -->
+      <rect class="deck" x="40" y="246" width="680" height="90" rx="14"/>
+      <line class="scale" x1="74" y1="252" x2="686" y2="252"/>
 
-          <!-- platen roller + knobs (do not feed; only slide horizontally) -->
-          <rect class="platen" x="175" y="236" width="460" height="46" rx="23"/>
-          <rect class="platen-hi" x="175" y="243" width="460" height="8" rx="4" opacity="0.55"/>
-          <circle class="knob" cx="175" cy="259" r="29"/>
-          <circle class="knob-hi" cx="175" cy="259" r="14"/>
-          <circle class="knob" cx="635" cy="259" r="29"/>
-          <circle class="knob-hi" cx="635" cy="259" r="14"/>
+      <!-- the sheet of paper + printed text; feeds UP on return (vertical only, so it
+           stays centred and never slides off-screen). The type-bar travels along the
+           line instead, keeping the whole line on the page at all times. -->
+      <g id="paperFeed" clip-path="url(#paperClip)">
+        <rect class="paper" x="150" y="120" width="460" height="1900" rx="7"/>
+        <rect x="150" y="120" width="460" height="1900" rx="7" fill="url(#paperShade)"/>
+        <g id="textLayer"></g>
+      </g>
 
-          <!-- paper bail with rollers -->
-          <rect class="bail" x="190" y="225" width="430" height="6" rx="3"/>
-          <circle class="bail" cx="230" cy="228" r="7"/>
-          <circle class="bail" cx="560" cy="228" r="7"/>
+      <!-- platen roller + knobs (drawn over the paper so it appears to wrap behind) -->
+      <rect class="platen" x="140" y="252" width="480" height="52" rx="26"/>
+      <rect class="platen-hi" x="140" y="260" width="480" height="9" rx="4" opacity="0.55"/>
+      <circle class="knob" cx="140" cy="278" r="30"/>
+      <circle class="knob-hi" cx="140" cy="278" r="15"/>
+      <circle class="knob" cx="620" cy="278" r="30"/>
+      <circle class="knob-hi" cx="620" cy="278" r="15"/>
 
-          <!-- carriage-return lever (clickable) -->
-          <g id="lever" class="lever" tabindex="0" role="button" aria-label="Carriage return">
-            <rect x="92" y="214" width="60" height="11" rx="5"/>
-            <circle cx="92" cy="219" r="9"/>
-          </g>
+      <!-- paper bail with rollers, just below the printing line -->
+      <rect class="bail" x="170" y="246" width="420" height="6" rx="3"/>
+      <circle class="bail" cx="210" cy="249" r="7"/>
+      <circle class="bail" cx="560" cy="249" r="7"/>
+
+      <!-- carriage-return lever (clickable), on the left of the platen -->
+      <g id="lever" class="lever" tabindex="0" role="button" aria-label="Carriage return">
+        <rect x="72" y="204" width="74" height="12" rx="6"/>
+        <circle cx="72" cy="210" r="10"/>
+      </g>
+
+      <!-- side walls framing the platen -->
+      <rect class="wall" x="32" y="238" width="40" height="98" rx="12"/>
+      <rect class="wall" x="688" y="238" width="40" height="98" rx="12"/>
+
+      <!-- type-bar arm: positioned under the active column (by JS) and swung up to strike -->
+      <g id="typebarPos">
+        <g id="typebar" class="typebar">
+          <rect x="-4" y="238" width="8" height="96" rx="4"/>
+          <rect x="-11" y="230" width="22" height="16" rx="3"/>
         </g>
       </g>
 
-      <!-- type-bar arm: swings up to the printing point (screen-x === printX) on each strike -->
-      <g id="typebar" class="typebar">
-        <rect x="226" y="206" width="8" height="96" rx="4"/>
-        <rect x="219" y="198" width="22" height="16" rx="3"/>
-      </g>
-
-      <!-- machine body -->
-      <path class="body" d="M 70 540 Q 46 540 46 512 L 70 326 Q 74 300 110 300 L 650 300 Q 686 300 690 326 L 714 512 Q 714 540 690 540 Z"/>
-      <path class="body-3" d="M 70 540 Q 46 540 46 512 L 58 420 L 702 420 L 714 512 Q 714 540 690 540 Z"/>
-      <rect class="body-2" x="120" y="312" width="520" height="20" rx="10" opacity="0.6"/>
+      <!-- machine body / keyboard housing -->
+      <path class="body" d="M 70 588 Q 46 588 48 560 L 70 332 Q 74 312 108 312 L 652 312 Q 686 312 690 332 L 712 560 Q 714 588 690 588 Z"/>
+      <rect class="body-2" x="118" y="320" width="524" height="18" rx="9" opacity="0.55"/>
+      <path class="body-3" d="M 64 560 L 696 560 L 712 560 Q 714 588 690 588 L 70 588 Q 46 588 48 560 Z"/>
 
       <!-- keyboard (keys injected by script) -->
       <g id="keys"></g>
@@ -256,40 +269,45 @@
   "use strict";
 
   // ----- geometry (SVG user units) -----
-  // printX is both column 0's local x AND the on-screen printing point: the
-  // carriage translates by -(col*charW), so the active character always lands
-  // at screen-x === printX. Sheet is sized so this point sits at its left margin.
-  var charW = 12, lineH = 22, maxChars = 30, printX = 230, printY = 200;
+  // The sheet stays centred and only feeds UP on return, so the page can never
+  // slide off-screen. col0X is the page's left margin; column c sits at
+  // col0X + c*charW. The line width (maxChars*charW) fits inside the sheet, so a
+  // whole line is always visible; the type-bar travels to the active column.
+  var charW = 12, lineH = 24, maxChars = 30, col0X = 196, printY = 238;
 
   // ----- document model: typewriter-style, edits only at the current line end -----
   var lines = [""], cur = 0;
   function colLen() { return lines[cur].length; }
+  function cursorX() { return col0X + colLen() * charW; }
 
   var SVGNS = "http://www.w3.org/2000/svg";
-  var carriage = document.getElementById("carriage");
   var paperFeed = document.getElementById("paperFeed");
   var textLayer = document.getElementById("textLayer");
   var typebar = document.getElementById("typebar");
+  var typebarPos = document.getElementById("typebarPos");
 
   function esc(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
   function render() {
-    carriage.setAttribute("transform", "translate(" + (-colLen() * charW) + ",0)");
     paperFeed.setAttribute("transform", "translate(0," + (-cur * lineH) + ")");
 
     var out = "";
     for (var L = 0; L < lines.length; L++) {
       var y = printY + L * lineH, s = lines[L], tsp = "";
       for (var c = 0; c < s.length; c++) {
-        tsp += '<tspan x="' + (printX + c * charW) + '">' + esc(s[c]) + "</tspan>";
+        tsp += '<tspan x="' + (col0X + c * charW) + '">' + esc(s[c]) + "</tspan>";
       }
       out += '<text class="ink" y="' + y + '">' + tsp + "</text>";
     }
-    var cx = printX + colLen() * charW;
-    out += '<rect class="cursor" x="' + cx + '" y="' + (printY + 4) + '" width="' + (charW - 2) + '" height="3"/>';
+    var cy = printY + cur * lineH + 3;
+    out += '<rect class="cursor" x="' + cursorX() + '" y="' + cy + '" width="' + (charW - 2) + '" height="3"/>';
     textLayer.innerHTML = out;
+
+    // park the type-bar under the last typed character (or the left margin)
+    var barX = col0X + Math.max(0, colLen() - 1) * charW;
+    typebarPos.setAttribute("transform", "translate(" + barX + ",0)");
   }
 
   // ----- key map for press animation + click-to-type -----
@@ -305,7 +323,7 @@
   function strike() {
     if (typebar.animate) {
       typebar.animate(
-        [{ transform: "rotate(56deg)" }, { transform: "rotate(0deg)" }, { transform: "rotate(56deg)" }],
+        [{ transform: "rotate(72deg)" }, { transform: "rotate(0deg)" }, { transform: "rotate(72deg)" }],
         { duration: 130, easing: "ease-out" }
       );
     }
@@ -316,21 +334,19 @@
     if (colLen() >= maxChars) doReturn();   // soft right-margin: auto-wrap to a new line
     lines[cur] += ch;
     flashKey(ch === " " ? " " : ch.toLowerCase());
-    strike();
-    render();
+    render();   // positions the type-bar under the new character...
+    strike();   // ...then swing it up to strike
   }
 
   function doReturn() {
     lines.push("");
     cur++;
-    carriage.classList.add("returning");
-    paperFeed.classList.add("returning");
+    typebarPos.classList.add("returning");   // carriage slides back to the left margin
     flashKey("Enter");
     render();
     setTimeout(function () {
-      carriage.classList.remove("returning");
-      paperFeed.classList.remove("returning");
-    }, 280);
+      typebarPos.classList.remove("returning");
+    }, 260);
   }
 
   function backspace() {
@@ -385,10 +401,10 @@
     }
 
     var rows = [
-      { y: 348, start: 191, chars: "1234567890" },
-      { y: 390, start: 191, chars: "qwertyuiop" },
-      { y: 432, start: 212, chars: "asdfghjkl" },
-      { y: 474, start: 254, chars: "zxcvbnm" }
+      { y: 362, start: 191, chars: "1234567890" },
+      { y: 404, start: 191, chars: "qwertyuiop" },
+      { y: 446, start: 212, chars: "asdfghjkl" },
+      { y: 488, start: 254, chars: "zxcvbnm" }
     ];
     rows.forEach(function (row) {
       for (var i = 0; i < row.chars.length; i++) {
@@ -398,10 +414,10 @@
     });
 
     // function keys
-    addKey(648, 348, "del", "Backspace", true, 60);
-    addKey(648, 432, "return", "Enter", true, 78);
-    addKey(150, 474, "shift", null, true, 64);
-    addKey(380, 514, "", " ", false, 250); // space bar
+    addKey(648, 362, "del", "Backspace", true, 60);
+    addKey(648, 446, "return", "Enter", true, 78);
+    addKey(150, 488, "shift", null, true, 64);
+    addKey(380, 530, "", " ", false, 250); // space bar
   })();
 
   // ----- input capture (physical + soft keyboard) -----
@@ -521,7 +537,7 @@
     else root.setAttribute("data-theme", s);
     themeBtn.textContent = "Theme: " + s.charAt(0).toUpperCase() + s.slice(1);
     var dark = s === "dark" || (s === "system" && mq.matches);
-    meta.setAttribute("content", dark ? "#14171f" : "#f4efe6");
+    meta.setAttribute("content", dark ? "#0e1016" : "#efe7d8");
   }
   themeBtn.addEventListener("click", function () {
     var order = ["system", "light", "dark"];
