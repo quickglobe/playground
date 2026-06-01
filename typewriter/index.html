@@ -116,12 +116,14 @@
   button {
     font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
     color: var(--fg); background: var(--btn-bg);
-    border: 2px solid var(--btn-edge); border-radius: 999px;
+    border: 2px solid var(--btn-edge); border-radius: 16px;
     padding: 9px 16px; box-shadow: 3px 3px 0 var(--shadow);
     transition: transform .12s, box-shadow .12s; -webkit-tap-highlight-color: transparent;
   }
-  button:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
-  button:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--shadow); }
+  @media (hover: hover) {
+    button:hover { transform: translateY(-3px); box-shadow: 5px 5px 0 var(--shadow); }
+  }
+  button:active { transform: translateY(2px); box-shadow: 1px 1px 0 var(--shadow); }
   .hint { color: var(--muted); font-size: 13px; margin-top: 2px; transition: opacity .6s ease; }
   .hint.faded { opacity: 0; }
 
