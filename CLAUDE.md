@@ -1,6 +1,57 @@
 # Claude Code Guide
 
-This repo is a personal playground for small, self-contained projects and experiments, hosted on GitHub Pages. Each project lives in its own folder under `main`, and the root `index.html` is a browsable project index.
+This repo is a personal playground for small, self-contained projects and
+experiments, hosted on GitHub Pages. Each project lives in its own folder under
+`main`, and the root `index.html` is a browsable project index.
+
+---
+
+## ALWAYS — every task, every time
+
+Do all of these on every change, regardless of how small the task seems. Treat
+this list as a gate: the task is not complete until each applicable item is done.
+
+1. **Keep the PR open and iterate on the same branch until the change is
+   confirmed working.** Push fixes as new commits to the same branch; do not open
+   a fresh PR each round. Merge only once verified.
+2. **Give a clickable preview link as the final step.** Provide the
+   `raw.githack.com` URL for the changed file, on its own line, with no markdown
+   link text, parentheses, or trailing punctuation, so the phone/terminal client
+   auto-links it. Never hand over the PR (`github.com/.../pull/N`) URL as the
+   preview — that is the diff view, not the rendered page.
+   - Format: `https://raw.githack.com/quickglobe/playground/<branch>/<project>/index.html`
+   - If a preview looks stale, append a cache-busting query (`?v=2`) and bump the
+     number each time.
+3. **Verify before declaring done.** Device-independent changes (layout, JS logic,
+   canvas geometry) can be checked headlessly in the session. Device-dependent
+   changes (iOS status-bar / toolbar tinting, sticky hover) must be checked on a
+   real device via the githack link before merge.
+4. **No emoji anywhere** — not in HTML, JS, or CSS. Use plain text labels.
+5. **Relative icon/asset paths only** (`favicon.svg`, never `/favicon.svg`). The
+   site is served from the `/playground/` subpath; absolute paths 404 silently.
+6. **Follow OS preference for dark mode; never add a manual light/dark toggle.**
+
+Everything below is on-demand reference — read the relevant section when a task
+touches that subsystem.
+
+---
+
+## Contents
+
+- [Project conventions](#project-conventions)
+- [Working style](#working-style)
+- [Previewing changes and pull requests](#previewing-changes-and-pull-requests)
+- [Favicons and bookmark icons](#favicons-and-bookmark-icons)
+- [Mobile and touch device patterns](#mobile-and-touch-device-patterns)
+- [Dark mode](#dark-mode)
+- [Landing page preview cards](#landing-page-preview-cards)
+- [Rendering grids on canvas](#rendering-grids-on-canvas)
+- [Framed cards in an equal-height grid (the phantom "drop shadow")](#framed-cards-in-an-equal-height-grid-the-phantom-drop-shadow)
+- [CSS rendering and Lisse squircle clip-paths](#css-rendering-and-lisse-squircle-clip-paths)
+- [SVG path authoring](#svg-path-authoring)
+- [Full-bleed OS chrome tinting on iOS 26 Safari (Liquid Glass)](#full-bleed-os-chrome-tinting-on-ios-26-safari-liquid-glass)
+
+---
 
 ## Project conventions
 
@@ -10,9 +61,27 @@ This repo is a personal playground for small, self-contained projects and experi
 - No build step unless the project specifically calls for it
 - Keep things simple and self-contained
 
+## Working style
+
+- Prefer vanilla HTML/CSS/JS over frameworks unless the project is specifically exploring a framework
+- No need for tests unless the project is specifically about testing something
+- Comments only when the behavior would be non-obvious
+- Do not use emoji anywhere in the site — not in HTML, JS, or CSS; use plain text labels instead
+
+## Previewing changes and pull requests
+
+Sessions often run in the cloud and are driven from a phone, so the only "preview" is the deployed GitHub Pages site — and that only reflects `main`. To avoid a merge / test / fix / merge-again loop:
+
+- Keep the PR open until the change is confirmed working. Push iterative fixes as new commits to the same branch rather than opening a fresh PR each round. Merge only once it is verified.
+- Preview a branch without merging via raw.githack. For a self-contained file, open `https://raw.githack.com/quickglobe/playground/<branch>/<project>/index.html` on the device. It serves over HTTPS with correct content types, so the page renders and HTTPS-only APIs (geolocation, etc.) work. Use this to check on a real device before merging.
+  - Make the link clickable/tappable. Put the bare githack URL on its own line (no surrounding markdown link text, no parentheses, no trailing punctuation), so the terminal/phone client auto-links it. Do not hand the user the PR (`github.com/.../pull/N`) URL as the preview — that opens the diff view, not the rendered page; the `raw.githack.com` URL is the preview.
+  - githack caches aggressively, so if a preview looks stale, append a cache-busting query (`?v=2`, bump the number each time).
+- Some things only reproduce on a real device (e.g. iOS Safari status bar / toolbar tinting), so a device check via the githack link is the last step before merge — desktop/headless browsers will not show them.
+- For changes that do not depend on device chrome (layout, JS logic, canvas), they can be verified headlessly in the session before the user ever looks.
+
 ## Favicons and bookmark icons
 
-The site is served from a project subpath (`https://quickglobe.github.io/playground/`), so **always use relative icon paths** (`favicon.svg`, not `/favicon.svg`). Absolute paths beginning with `/` resolve to the domain root, where nothing is served, and every icon silently 404s.
+The site is served from a project subpath (`https://quickglobe.github.io/playground/`), so always use relative icon paths (`favicon.svg`, not `/favicon.svg`). Absolute paths beginning with `/` resolve to the domain root, where nothing is served, and every icon silently 404s.
 
 The root index has a full icon set (`favicon.svg`, `favicon.ico`, sized PNGs, `apple-touch-icon.png`, `site.webmanifest`, `browserconfig.xml`). Each project folder gets its own project-specific icon set so tabs and home-screen bookmarks are distinguishable.
 
@@ -24,7 +93,6 @@ To add icons for a new project:
    - `apple-touch-icon.png` (180x180) — flatten onto the project's solid background color so iOS's rounded mask has no transparent/black corners
    - `favicon.ico` — multi-resolution (16/32/48), rendered from the SVG at 256 and saved with `sizes=[(16,16),(32,32),(48,48)]`
 3. Add the link tags to the project's `<head>` with relative `href`s, plus a `theme-color` meta matching the project background:
-
    ```html
    <link rel="icon" type="image/svg+xml" href="favicon.svg">
    <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -35,16 +103,22 @@ To add icons for a new project:
 
 Browsers cache favicons aggressively; a hard refresh (or re-adding the home-screen bookmark on iOS) may be needed to see updates.
 
-## Previewing changes and pull requests
+## Mobile and touch device patterns
 
-Sessions often run in the cloud and are driven from a phone, so the only "preview" is the deployed GitHub Pages site — and that only reflects `main`. To avoid a merge / test / fix / merge-again loop:
+- Gate `:hover` and `:active` styles with `@media (hover: hover)` — touch browsers fire `:hover` on tap and leave it active until the next interaction ("sticky hover"). Always scope hover color changes to `@media (hover: hover)` so they never activate on tap.
+- Gate hover/active animations with `@media (hover: hover) and (pointer: fine)` — card lift/press animations are satisfying with a mouse but disruptive on a tap (no hover state exists between touches). Wrap the entire `transition` + `:hover`/`:active` transform block in this media query; touch devices get no animation.
+- `min-width` for dynamic toolbar content — any element whose text changes (Play/Pause button, generation counter, status label) must have `min-width` set to the widest value it will ever show. Without it the flex container reflows and sibling elements shift every time the label changes length.
+- Touch targets — interactive controls need at least 40px height on mobile. Range slider thumbs need enlargement via `::-webkit-slider-thumb` with `coarse` pointer media query.
 
-- **Keep the PR open until the change is confirmed working.** Push iterative fixes as new commits to the same branch rather than opening a fresh PR each round. Merge only once it is verified.
-- **Preview a branch without merging via raw.githack.** For a self-contained file, open `https://raw.githack.com/quickglobe/playground/<branch>/<project>/index.html` on the device. It serves over HTTPS with correct content types, so the page renders and HTTPS-only APIs (geolocation, etc.) work. Use this to check on a real device before merging.
-  - **Make the link clickable/tappable.** Put the bare githack URL on its own line (no surrounding markdown link text, no parentheses, no trailing punctuation), so the terminal/phone client auto-links it. Do not hand the user the PR (`github.com/.../pull/N`) URL as the preview — that opens the diff view, not the rendered page; the `raw.githack.com` URL is the preview.
-  - githack caches aggressively, so if a preview looks stale, append a cache-busting query (`?v=2`, bump the number each time).
-- **Some things only reproduce on a real device** (e.g. iOS Safari status bar / toolbar tinting), so a device check via the githack link is the last step before merge — desktop/headless browsers will not show them.
-- For changes that do not depend on device chrome (layout, JS logic, canvas), they can be verified headlessly in the session before the user ever looks.
+## Dark mode
+
+- Follow OS preference only; never add a manual dark/light toggle — manual toggles were added to the landing page and Game of Life and then removed both times. The added complexity (toggle button, `localStorage`, `data-theme` attribute switching) is not worth it when `prefers-color-scheme` already respects the user's system setting.
+- Dark mode FOUC fix — if a project reads a stored theme preference at startup, the reading script must be an inline `<script>` in `<head>`, not at the bottom of `<body>`. A deferred script runs after the first paint, causing a visible flash of the wrong theme for returning users.
+
+## Landing page preview cards
+
+- Use static snapshots, not live animations — a running simulation in a landing-page preview card is distracting. Advance to a visually interesting state (e.g. 5 generations of Game of Life) and then stop; the canvas stays as a static image.
+- Preview colors must match the actual app — if the preview uses wrong colors (e.g. the landing page's `--teal` instead of the app's own red), it looks like a different product. Always sample the exact palette values from the app's CSS for the preview.
 
 ## Rendering grids on canvas
 
@@ -53,11 +127,11 @@ hitting the same family of bugs: a row/column of half-covered cells at one edge,
 gap between the grid and its frame, blurry lines, and cells bleeding over the grid
 lines. Fixing one naively reintroduces another, so apply all of these together.
 
-- **Never round the cell count up.** `cols = Math.ceil(W / cell)` makes the grid
+- Never round the cell count up. `cols = Math.ceil(W / cell)` makes the grid
   wider than the canvas, so the last row/column is clipped mid-cell. Use the largest
   whole number of cells that *fits*: `Math.floor` (or `Math.round` if you intend to
   stretch — see below).
-- **Decide who owns the leftover sub-cell remainder**, because `W`/`H` is almost never
+- Decide who owns the leftover sub-cell remainder, because `W`/`H` is almost never
   an exact multiple of the cell size:
   - *If the container can be resized to the grid* (a standalone app like
     `game-of-life/`), size it to `cols*cell (+ border)` in JS. The grid is then flush
@@ -69,23 +143,23 @@ lines. Fixing one naively reintroduces another, so apply all of these together.
     `colX = i => Math.round(i*W/cols)` (same for rows). Cells come out 11-13px for a
     ~12px target — near-square and unnoticeable. The first boundary is `0` and the last
     is exactly `W`/`H`, so it fills with no gap and no overflow.
-- **Render at CSS resolution + `image-rendering: pixelated`, not at device resolution.**
+- Render at CSS resolution + `image-rendering: pixelated`, not at device resolution.
   Scaling the context by `devicePixelRatio` pushes the `+0.5` crisp-line offsets onto
   fractional device pixels under a 2x/3x display, so the browser antialiases every grid
   line into a blurry mess. Set `canvas.width = clientWidth` (no `ctx.scale(dpr, dpr)`)
   and let the pixelated upscale keep cells and lines crisp. (Smooth scenes like the sun
   preview's gradients are the exception — they *want* DPR scaling and antialiasing.)
-- **Don't let cells paint over the grid lines.** Drawing full-size cells and then
+- Don't let cells paint over the grid lines. Drawing full-size cells and then
   stroking lines on top puts each line on the left/top pixel of its neighbour cell, an
   asymmetry that reads as overlap when zoomed. Inset each filled cell by 1px on its
   left/top edge (`colX(x) + (x ? 1 : 0)`); the right/bottom line belongs to the next
   cell, which is inset too, so every interior line keeps a clean 1px gap with cells
   flush on both sides.
-- **Draw interior divisions only; let the frame be the outer border.** Lines at
+- Draw interior divisions only; let the frame be the outer border. Lines at
   `c==0`/`c==cols` either double up on the box border or get clipped at the canvas edge.
   Draw lines for `1..cols-1` / `1..rows-1` only and let the container's border (or the
   preview tile's frame) supply the outer edge.
-- **Verify the geometry headlessly before the device check.** The invariants above are
+- Verify the geometry headlessly before the device check. The invariants above are
   pure arithmetic — assert them in Node across a range of widths (boundaries fill `0..W`
   exactly, no cell exceeds `W`/`H`, no cell overlaps a line pixel) so a device check only
   has to confirm it *looks* right, not whether the maths holds.
@@ -97,73 +171,86 @@ dark `background` and a few px of `padding` wraps an inner `.card` with the surf
 colour, so the padding reads as a uniform border/frame around the card. They sit in a
 CSS grid (`display: grid; grid-template-columns: repeat(auto-fill, ...)`).
 
-The trap: a CSS grid stretches every item in a row to the **tallest item's height**
-(`align-items: stretch` is the default), but a block child only takes its **content**
+The trap: a CSS grid stretches every item in a row to the tallest item's height
+(`align-items: stretch` is the default), but a block child only takes its content
 height. So the wrapper grows while the inner card does not, and the dark wrapper
 background shows as a band along the bottom edge of any card shorter than its row-mate.
 That band reads as a stray drop-shadow — and because it only appears where the grid
-actually stretches, it shows up **on desktop (multi-column) but not on mobile (single
-column, one card per row, nothing to stretch)**, and only on the *shorter* cards, not
+actually stretches, it shows up on desktop (multi-column) but not on mobile (single
+column, one card per row, nothing to stretch), and only on the *shorter* cards, not
 the tallest one that sets the row height. This bit us once already: the band was first
 misdiagnosed as a real `drop-shadow` that one card was *missing*, and a filter was added
 to that card to match — exactly backwards (that PR was reverted).
 
 Rules:
 
-- **The frame element's only child must fill it: `height: 100%`** (or make the wrapper a
+- The frame element's only child must fill it: `height: 100%` (or make the wrapper a
   flex container and let the child `flex: 1`). Then the padding-frame stays uniform on
   all four sides regardless of how tall the grid stretches the wrapper. This is the fix;
   apply it whenever a framed element is a stretchable grid/flex item.
-- **A difference that appears between cards, or between desktop and mobile, is the
-  symptom of one bug, not two.** Before theming a single card to "match" the others, ask
+- A difference that appears between cards, or between desktop and mobile, is the
+  symptom of one bug, not two. Before theming a single card to "match" the others, ask
   why they differ at all — equal-height stretch acting on content of different lengths is
   the usual culprit, and the fix belongs on the shared rule, not one card.
-- **The base card design has no drop-shadow** — depth comes only from the hover lift
+- The base card design has no drop-shadow — depth comes only from the hover lift
   (`transform: translate(-4px,-4px)`). Don't add offset shadows to "match" a phantom one.
+
+## CSS rendering and Lisse squircle clip-paths
+
+The site uses Lisse squircle `clip-path` on cards, buttons, and canvas wrappers. Several CSS properties misbehave with `clip-path`:
+
+- `box-shadow` doesn't follow `clip-path` — it renders as a square shadow behind the element, ignoring the clip outline. Use `filter: drop-shadow()` instead, which traces the clip shape correctly.
+- CSS borders are cut off at squircle corners — a `border` with `border-radius` uses a circular arc; the squircle `clip-path` is a tighter superellipse whose corners curve inward and cut through that arc, leaving bare edges. Fix: replace the border with a wrapper div that has the border color as its `background` and `padding` equal to the intended border width. Give both wrapper and inner element matching squircle clip-paths; the wrapper's background peeks through as the visual border. This is the established pattern for all framed elements in this project.
+- `rotate()` by a non-90-degree angle blurs canvas content — CSS `rotate()` forces the GPU to sample the canvas texture with bilinear filtering at fractional pixel positions, blurring pixel-art canvas content regardless of `will-change` hints. For card hover lifts, use only `translate()`. Don't add rotation to cards that contain canvas previews.
+
+## SVG path authoring
+
+- Use cubic bezier pairs (`C…C`) for smooth curves, not `Q`/`L` mixes — a `Q`-curve joined to an `L`-segment has mismatched tangent directions at the join, producing a visible kink. Cubic bezier pairs with shared control points guarantee tangent continuity at every join.
+- Inscribed circles must not exceed half the containing bar's height — a circle with radius > `barHeight/2` protrudes above and below the bar. Always set `r = floor(barHeight / 2)`.
 
 ## Full-bleed OS chrome tinting on iOS 26 Safari (Liquid Glass)
 
-To make a page's background bleed into the **top status bar / Dynamic Island** and
-the **bottom toolbar** — and especially to give them *different* colours (e.g. a
+To make a page's background bleed into the top status bar / Dynamic Island and
+the bottom toolbar — and especially to give them *different* colours (e.g. a
 sky gradient where the top is blue and the bottom is sand) — you must work with
 Safari 26's "Liquid Glass" tinting, which is undocumented and very particular.
 This took a long debugging loop (sun-tracker); don't rederive it.
 
 How Safari 26 decides each bar's colour:
 
-- **`theme-color` is ignored.** It still parses but does nothing for the toolbar.
+- `theme-color` is ignored. It still parses but does nothing for the toolbar.
   Keep it only as a fallback for older iOS / Android Chrome.
 - Each bar is tinted from the `background-color` of a `position: fixed`/`sticky`
-  element near that edge, **falling back to the `<body>` background**. The
+  element near that edge, falling back to the `<body>` background. The
   `<html>` background is ignored; only `<body>` matters. `position: absolute`
-  elements, pseudo-elements, and `background-image`/canvas pixels are **not**
+  elements, pseudo-elements, and `background-image`/canvas pixels are not
   sampled.
-- A fixed element only **qualifies** if it is within ~4px of the top / ~3px of the
-  bottom, **>=80% wide**, **>=3px tall**, with the colour **on the element itself**
+- A fixed element only qualifies if it is within ~4px of the top / ~3px of the
+  bottom, >=80% wide, >=3px tall, with the colour on the element itself
   (not an absolute child). `opacity: 0` and `pointer-events: none` elements are
   *still* sampled — use `display: none` to opt an element out.
 - With both a fixed top element and a fixed bottom element, Safari may "pick one"
   for the whole chrome. Prefer driving each edge by a *different* mechanism (below)
   and using at most one fixed element.
 
-The catch for full-screen, **non-scrolling** apps (`html, body { overflow: hidden }`,
+The catch for full-screen, non-scrolling apps (`html, body { overflow: hidden }`,
 `touch-action: none`, so `scrollY` is pinned at 0):
 
-- At `scrollY = 0`, Safari tints the **top status bar from the `<body>` background
-  only** — fixed elements are NOT consulted for the top in that state.
-- So the reliable pattern is: **drive the top via `document.body.style.background`**
-  (set it to the top/sky colour; it tracks live JS updates), and **drive the bottom
-  via a single fixed strip** set to the bottom/ground colour.
+- At `scrollY = 0`, Safari tints the top status bar from the `<body>` background
+  only — fixed elements are NOT consulted for the top in that state.
+- So the reliable pattern is: drive the top via `document.body.style.background`
+  (set it to the top/sky colour; it tracks live JS updates), and drive the bottom
+  via a single fixed strip set to the bottom/ground colour.
 
 Bottom-strip gotchas:
 
-- Do **not** size it with `height: env(safe-area-inset-bottom)` — Safari reports
+- Do not size it with `height: env(safe-area-inset-bottom)` — Safari reports
   that inset as `0` while the floating bottom toolbar is visible, collapsing the
   strip below the 3px threshold so it stops qualifying. Use
   `height: max(env(safe-area-inset-bottom, 0px), 16px)`.
-- Give it **no `z-index`** so it paints behind the content (invisible) while still
+- Give it no `z-index` so it paints behind the content (invisible) while still
   being sampled; otherwise it can cover real UI at the bottom edge.
-- Set a sensible **solid default colour in CSS** so it (and `<body>`) tint correctly
+- Set a sensible solid default colour in CSS so it (and `<body>`) tint correctly
   at first paint, before any JS (e.g. geolocation) resolves. JS updates to the
   qualifying element / `<body>` background *do* re-tint the bars live.
 
@@ -171,40 +258,3 @@ This is invisible to desktop/headless browsers — verify on a real iOS device v
 the githack preview. Reference (all reverse-engineered, no Apple docs):
 `github.com/andesco/safari-color-tinting`, `1ar.io/updates/safari-26-liquid-glass-web`,
 `nasedk.in/blog/ios26-safari-toolbar-colors`, `jahir.dev/blog/safari-toolbar`.
-
-## CSS rendering and Lisse squircle clip-paths
-
-The site uses Lisse squircle `clip-path` on cards, buttons, and canvas wrappers. Several CSS properties misbehave with `clip-path`:
-
-- **`box-shadow` doesn't follow `clip-path`** — it renders as a square shadow behind the element, ignoring the clip outline. Use `filter: drop-shadow()` instead, which traces the clip shape correctly.
-- **CSS borders are cut off at squircle corners** — a `border` with `border-radius` uses a circular arc; the squircle `clip-path` is a tighter superellipse whose corners curve inward and cut through that arc, leaving bare edges. Fix: replace the border with a wrapper div that has the border color as its `background` and `padding` equal to the intended border width. Give both wrapper and inner element matching squircle clip-paths; the wrapper's background peeks through as the visual border. This is the established pattern for all framed elements in this project.
-- **`rotate()` by a non-90-degree angle blurs canvas content** — CSS `rotate()` forces the GPU to sample the canvas texture with bilinear filtering at fractional pixel positions, blurring pixel-art canvas content regardless of `will-change` hints. For card hover lifts, use only `translate()`. Don't add rotation to cards that contain canvas previews.
-
-## Mobile and touch device patterns
-
-- **Gate `:hover` and `:active` styles with `@media (hover: hover)`** — touch browsers fire `:hover` on tap and leave it active until the next interaction ("sticky hover"). Always scope hover color changes to `@media (hover: hover)` so they never activate on tap.
-- **Gate hover/active animations with `@media (hover: hover) and (pointer: fine)`** — card lift/press animations are satisfying with a mouse but disruptive on a tap (no hover state exists between touches). Wrap the entire `transition` + `:hover`/`:active` transform block in this media query; touch devices get no animation.
-- **`min-width` for dynamic toolbar content** — any element whose text changes (Play/Pause button, generation counter, status label) must have `min-width` set to the widest value it will ever show. Without it the flex container reflows and sibling elements shift every time the label changes length.
-- **Touch targets** — interactive controls need at least 40px height on mobile. Range slider thumbs need enlargement via `::-webkit-slider-thumb` with `coarse` pointer media query.
-
-## Dark mode
-
-- **Follow OS preference only; never add a manual dark/light toggle** — manual toggles were added to the landing page and Game of Life and then removed both times. The added complexity (toggle button, `localStorage`, `data-theme` attribute switching) is not worth it when `prefers-color-scheme` already respects the user's system setting.
-- **Dark mode FOUC fix** — if a project reads a stored theme preference at startup, the reading script must be an inline `<script>` in `<head>`, not at the bottom of `<body>`. A deferred script runs after the first paint, causing a visible flash of the wrong theme for returning users.
-
-## Landing page preview cards
-
-- **Use static snapshots, not live animations** — a running simulation in a landing-page preview card is distracting. Advance to a visually interesting state (e.g. 5 generations of Game of Life) and then stop; the canvas stays as a static image.
-- **Preview colors must match the actual app** — if the preview uses wrong colors (e.g. the landing page's `--teal` instead of the app's own red), it looks like a different product. Always sample the exact palette values from the app's CSS for the preview.
-
-## SVG path authoring
-
-- **Use cubic bezier pairs (`C…C`) for smooth curves, not `Q`/`L` mixes** — a `Q`-curve joined to an `L`-segment has mismatched tangent directions at the join, producing a visible kink. Cubic bezier pairs with shared control points guarantee tangent continuity at every join.
-- **Inscribed circles must not exceed half the containing bar's height** — a circle with radius > `barHeight/2` protrudes above and below the bar. Always set `r = floor(barHeight / 2)`.
-
-## Working style
-
-- Prefer vanilla HTML/CSS/JS over frameworks unless the project is specifically exploring a framework
-- No need for tests unless the project is specifically about testing something
-- Comments only when the behavior would be non-obvious
-- Do not use emoji anywhere in the site — not in HTML, JS, or CSS; use plain text labels instead
