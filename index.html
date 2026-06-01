@@ -65,16 +65,10 @@
   .card-wrap {
     background: var(--card-brd); padding: 3px; border-radius: 29px;
   }
-  .card-wrap[data-preview="type"] {
-    filter: drop-shadow(6px 6px 0 var(--shadow-col));
-  }
   @media (hover: hover) and (pointer: fine) {
     .card-wrap { transition: transform 0.22s cubic-bezier(.34,1.56,.64,1); }
-    .card-wrap[data-preview="type"] { transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), filter 0.22s; }
     .card-wrap:has(.card:hover) { transform: translate(-4px,-4px) rotate(-0.6deg); }
-    .card-wrap[data-preview="type"]:has(.card:hover) { filter: drop-shadow(12px 12px 0 var(--shadow-col)); }
     .card-wrap:has(.card:active) { transform: translate(2px,2px); }
-    .card-wrap[data-preview="type"]:has(.card:active) { filter: drop-shadow(3px 3px 0 var(--shadow-col)); }
   }
   .card-wrap:has(.card:focus-visible) { outline: 3px solid var(--blue); outline-offset: 4px; }
   .card {
@@ -154,7 +148,7 @@
     const a = document.createElement("a"); a.className = "card"; a.href = p.url;
     a.innerHTML = `<div class="preview-wrap"><div class="preview">${previewHTML(p.preview)}</div></div>
       <div class="meta"><span class="chip ${p.chip}">${p.tag}</span><h2>${p.title}</h2><p>${p.desc}</p></div>`;
-    const wrap = document.createElement("div"); wrap.className = "card-wrap"; wrap.dataset.preview = p.preview;
+    const wrap = document.createElement("div"); wrap.className = "card-wrap";
     wrap.appendChild(a);
     grid.appendChild(wrap);
   });
