@@ -64,6 +64,7 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: clamp(20px,3.5vw,30px); }
   .card-wrap {
     background: var(--card-brd); padding: 3px; border-radius: 29px;
+    will-change: transform;
   }
   @media (hover: hover) and (pointer: fine) {
     .card-wrap { transition: transform 0.22s cubic-bezier(.34,1.56,.64,1); }
