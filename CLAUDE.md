@@ -172,6 +172,31 @@ the githack preview. Reference (all reverse-engineered, no Apple docs):
 `github.com/andesco/safari-color-tinting`, `1ar.io/updates/safari-26-liquid-glass-web`,
 `nasedk.in/blog/ios26-safari-toolbar-colors`, `jahir.dev/blog/safari-toolbar`.
 
+## CSS rendering and Lisse squircle clip-paths
+
+The site uses Lisse squircle `clip-path` on cards, buttons, and canvas wrappers. Several CSS properties misbehave with `clip-path`:
+
+- **`box-shadow` doesn't follow `clip-path`** — it renders as a square shadow behind the element, ignoring the clip outline. Use `filter: drop-shadow()` instead, which traces the clip shape correctly.
+- **CSS borders are cut off at squircle corners** — a `border` with `border-radius` uses a circular arc; the squircle `clip-path` is a tighter superellipse whose corners curve inward and cut through that arc, leaving bare edges. Fix: replace the border with a wrapper div that has the border color as its `background` and `padding` equal to the intended border width. Give both wrapper and inner element matching squircle clip-paths; the wrapper's background peeks through as the visual border. This is the established pattern for all framed elements in this project.
+- **`rotate()` by a non-90-degree angle blurs canvas content** — CSS `rotate()` forces the GPU to sample the canvas texture with bilinear filtering at fractional pixel positions, blurring pixel-art canvas content regardless of `will-change` hints. For card hover lifts, use only `translate()`. Don't add rotation to cards that contain canvas previews.
+
+## Mobile and touch device patterns
+
+- **Gate `:hover` and `:active` styles with `@media (hover: hover)`** — touch browsers fire `:hover` on tap and leave it active until the next interaction ("sticky hover"). Always scope hover color changes to `@media (hover: hover)` so they never activate on tap.
+- **Gate hover/active animations with `@media (hover: hover) and (pointer: fine)`** — card lift/press animations are satisfying with a mouse but disruptive on a tap (no hover state exists between touches). Wrap the entire `transition` + `:hover`/`:active` transform block in this media query; touch devices get no animation.
+- **`min-width` for dynamic toolbar content** — any element whose text changes (Play/Pause button, generation counter, status label) must have `min-width` set to the widest value it will ever show. Without it the flex container reflows and sibling elements shift every time the label changes length.
+- **Touch targets** — interactive controls need at least 40px height on mobile. Range slider thumbs need enlargement via `::-webkit-slider-thumb` with `coarse` pointer media query.
+
+## Dark mode
+
+- **Follow OS preference only; never add a manual dark/light toggle** — manual toggles were added to the landing page and Game of Life and then removed both times. The added complexity (toggle button, `localStorage`, `data-theme` attribute switching) is not worth it when `prefers-color-scheme` already respects the user's system setting.
+- **Dark mode FOUC fix** — if a project reads a stored theme preference at startup, the reading script must be an inline `<script>` in `<head>`, not at the bottom of `<body>`. A deferred script runs after the first paint, causing a visible flash of the wrong theme for returning users.
+
+## Landing page preview cards
+
+- **Use static snapshots, not live animations** — a running simulation in a landing-page preview card is distracting. Advance to a visually interesting state (e.g. 5 generations of Game of Life) and then stop; the canvas stays as a static image.
+- **Preview colors must match the actual app** — if the preview uses wrong colors (e.g. the landing page's `--teal` instead of the app's own red), it looks like a different product. Always sample the exact palette values from the app's CSS for the preview.
+
 ## Working style
 
 - Prefer vanilla HTML/CSS/JS over frameworks unless the project is specifically exploring a framework
