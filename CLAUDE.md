@@ -90,6 +90,37 @@ lines. Fixing one naively reintroduces another, so apply all of these together.
   exactly, no cell exceeds `W`/`H`, no cell overlaps a line pixel) so a device check only
   has to confirm it *looks* right, not whether the maths holds.
 
+## Framed cards in an equal-height grid (the phantom "drop shadow")
+
+The landing-page project cards use a nested-frame pattern: a `.card-wrap` with a solid
+dark `background` and a few px of `padding` wraps an inner `.card` with the surface
+colour, so the padding reads as a uniform border/frame around the card. They sit in a
+CSS grid (`display: grid; grid-template-columns: repeat(auto-fill, ...)`).
+
+The trap: a CSS grid stretches every item in a row to the **tallest item's height**
+(`align-items: stretch` is the default), but a block child only takes its **content**
+height. So the wrapper grows while the inner card does not, and the dark wrapper
+background shows as a band along the bottom edge of any card shorter than its row-mate.
+That band reads as a stray drop-shadow — and because it only appears where the grid
+actually stretches, it shows up **on desktop (multi-column) but not on mobile (single
+column, one card per row, nothing to stretch)**, and only on the *shorter* cards, not
+the tallest one that sets the row height. This bit us once already: the band was first
+misdiagnosed as a real `drop-shadow` that one card was *missing*, and a filter was added
+to that card to match — exactly backwards (that PR was reverted).
+
+Rules:
+
+- **The frame element's only child must fill it: `height: 100%`** (or make the wrapper a
+  flex container and let the child `flex: 1`). Then the padding-frame stays uniform on
+  all four sides regardless of how tall the grid stretches the wrapper. This is the fix;
+  apply it whenever a framed element is a stretchable grid/flex item.
+- **A difference that appears between cards, or between desktop and mobile, is the
+  symptom of one bug, not two.** Before theming a single card to "match" the others, ask
+  why they differ at all — equal-height stretch acting on content of different lengths is
+  the usual culprit, and the fix belongs on the shared rule, not one card.
+- **The base card design has no drop-shadow** — depth comes only from the hover lift
+  (`transform: translate(-4px,-4px)`). Don't add offset shadows to "match" a phantom one.
+
 ## Full-bleed OS chrome tinting on iOS 26 Safari (Liquid Glass)
 
 To make a page's background bleed into the **top status bar / Dynamic Island** and
