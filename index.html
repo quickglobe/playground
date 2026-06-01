@@ -58,7 +58,7 @@
   .brand { flex: 1; min-width: 0; }
   .brand h1 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(38px,8vw,64px); letter-spacing: -0.02em; line-height: 1.0; }
   .brand h1 .pop { display: inline-block; color: var(--teal); transform-origin: bottom; }
-  @keyframes wiggle { 0%,92%,100%{ transform: rotate(0); } 95%{ transform: rotate(-9deg); } 98%{ transform: rotate(7deg); } }
+  @keyframes wiggle { 0%{ transform: rotate(0); } 3%{ transform: rotate(-9deg); } 6%{ transform: rotate(7deg); } 8%,100%{ transform: rotate(0); } }
   @media (hover: hover) {
     .brand h1:hover .pop { animation: wiggle 3s ease-in-out 1; }
   }
