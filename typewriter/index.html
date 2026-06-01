@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<title>Typewriter</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<meta name="theme-color" content="#f4efe6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f4efe6; --ink:#26313a; --paper:#fffdf6; --paper-edge:#e7ded0;
+    --body:#2f6f6a; --body-2:#27605c; --body-3:#1f4f4b;
+    --platen:#2b2b30; --platen-hi:#43434c; --knob:#191a1e; --knob-hi:#3a3b42;
+    --bail:#5a5a62;
+    --keycap:#f4efe6; --key-edge:#cfc6b6; --key-ink:#393a3c; --key-down:#e2dbc9;
+    --keyfn:#d9cdb6; --typebar:#3a3a3f;
+    --panel:#fffdf6; --btn-bg:#fffdf6; --btn-edge:#26313a; --shadow:#26313a;
+    --muted:#6c6157;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14171f; --ink:#2c2722; --paper:#e9e3d4; --paper-edge:#cfc7b4;
+      --body:#1d3b39; --body-2:#173230; --body-3:#0f2422;
+      --platen:#0d0d11; --platen-hi:#26262e; --knob:#050507; --knob-hi:#22232a;
+      --bail:#3a3a42;
+      --keycap:#2a2f3a; --key-edge:#454c5a; --key-ink:#d7dbe4; --key-down:#3a414f;
+      --keyfn:#39414f; --typebar:#3a3f49;
+      --panel:#1c2029; --btn-bg:#1c2029; --btn-edge:#aab3c5; --shadow:#04060a;
+      --muted:#97a0b2;
+      color-scheme:dark;
+    }
+  }
+  /* explicit overrides win over the system media query */
+  [data-theme="light"] {
+    --bg:#f4efe6; --ink:#26313a; --paper:#fffdf6; --paper-edge:#e7ded0;
+    --body:#2f6f6a; --body-2:#27605c; --body-3:#1f4f4b;
+    --platen:#2b2b30; --platen-hi:#43434c; --knob:#191a1e; --knob-hi:#3a3b42;
+    --bail:#5a5a62;
+    --keycap:#f4efe6; --key-edge:#cfc6b6; --key-ink:#393a3c; --key-down:#e2dbc9;
+    --keyfn:#d9cdb6; --typebar:#3a3a3f;
+    --panel:#fffdf6; --btn-bg:#fffdf6; --btn-edge:#26313a; --shadow:#26313a;
+    --muted:#6c6157;
+    color-scheme:light;
+  }
+  [data-theme="dark"] {
+    --bg:#14171f; --ink:#2c2722; --paper:#e9e3d4; --paper-edge:#cfc7b4;
+    --body:#1d3b39; --body-2:#173230; --body-3:#0f2422;
+    --platen:#0d0d11; --platen-hi:#26262e; --knob:#050507; --knob-hi:#22232a;
+    --bail:#3a3a42;
+    --keycap:#2a2f3a; --key-edge:#454c5a; --key-ink:#d7dbe4; --key-down:#3a414f;
+    --keyfn:#39414f; --typebar:#3a3f49;
+    --panel:#1c2029; --btn-bg:#1c2029; --btn-edge:#aab3c5; --shadow:#04060a;
+    --muted:#97a0b2;
+    color-scheme:dark;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 14px max(env(safe-area-inset-bottom), 14px);
+    overflow-x: hidden;
+  }
+
+  header { text-align: center; margin: clamp(10px,3vw,24px) 0 6px; }
+  header h1 {
+    font-family: 'Cutive Mono', monospace; font-weight: 400;
+    font-size: clamp(26px,6vw,40px); letter-spacing: 0.04em;
+  }
+  header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  .stage { position: relative; width: 100%; max-width: 660px; touch-action: manipulation; }
+  #tw { display: block; width: 100%; height: auto; cursor: text; }
+
+  /* hidden capture field — raises the mobile soft keyboard, never blocks clicks */
+  #cap {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; border: 0; background: transparent; resize: none;
+    pointer-events: none; font-size: 16px; /* >=16px avoids iOS focus zoom */
+  }
+
+  /* ---- SVG element styling, driven by theme variables ---- */
+  .paper      { fill: var(--paper); stroke: var(--paper-edge); stroke-width: 1.5; }
+  .ink        { fill: var(--ink); font-family: 'Cutive Mono', 'Courier New', monospace; font-size: 18px; }
+  .cursor     { fill: var(--ink); animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .body       { fill: var(--body); }
+  .body-2     { fill: var(--body-2); }
+  .body-3     { fill: var(--body-3); }
+  .platen     { fill: var(--platen); }
+  .platen-hi  { fill: var(--platen-hi); }
+  .knob       { fill: var(--knob); }
+  .knob-hi    { fill: var(--knob-hi); }
+  .bail       { fill: var(--bail); }
+  .typebar    { fill: var(--typebar); transform-box: fill-box; transform-origin: bottom center; transform: rotate(56deg); }
+  .lever      { fill: var(--knob); cursor: pointer; transform-box: fill-box; transform-origin: bottom right; transition: transform .12s ease; }
+  .lever:active, .lever.pull { transform: rotate(-26deg); }
+
+  .key        { cursor: pointer; }
+  .keycap     { fill: var(--keycap); stroke: var(--key-edge); stroke-width: 1.5; transition: transform .07s ease, fill .07s ease; }
+  .key.fn .keycap { fill: var(--keyfn); }
+  .keytext    { fill: var(--key-ink); font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .key.down .keycap { transform: translateY(3px); fill: var(--key-down); }
+  .key.down .keytext { transform: translateY(3px); }
+  .keytext, .keycap { transition: transform .07s ease, fill .07s ease; }
+
+  #carriage  { transition: transform 80ms linear; }
+  #carriage.returning { transition: transform 260ms cubic-bezier(.18,.7,.2,1); }
+  #paperFeed { transition: transform 80ms linear; }
+  #paperFeed.returning { transition: transform 260ms cubic-bezier(.18,.7,.2,1); }
+
+  /* ---- controls ---- */
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0 6px; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    color: var(--ink); background: var(--btn-bg);
+    border: 2px solid var(--btn-edge); border-radius: 999px;
+    padding: 9px 16px; box-shadow: 3px 3px 0 var(--shadow);
+    transition: transform .12s, box-shadow .12s; -webkit-tap-highlight-color: transparent;
+  }
+  button:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--shadow); }
+  button:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--shadow); }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .back { margin-top: 18px; }
+  .back a { color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600; }
+  .back a:hover { color: var(--ink); }
+
+  /* ---- view-document overlay ---- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50; display: none;
+    background: rgba(0,0,0,.45); backdrop-filter: blur(3px);
+    padding: max(env(safe-area-inset-top),20px) 16px max(env(safe-area-inset-bottom),20px);
+    overflow: auto;
+  }
+  .overlay.open { display: flex; flex-direction: column; align-items: center; }
+  .doc {
+    background: var(--paper); color: var(--ink);
+    width: 100%; max-width: 640px; margin: auto 0; border-radius: 6px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.4); padding: 40px clamp(22px,6vw,56px);
+    border: 1px solid var(--paper-edge);
+  }
+  .doc h2 { font-family: 'Cutive Mono', monospace; font-weight: 400; font-size: 15px; color: var(--muted); margin-bottom: 18px; letter-spacing: .05em; }
+  .doc pre {
+    font-family: 'Cutive Mono', 'Courier New', monospace; font-size: 16px; line-height: 1.7;
+    white-space: pre-wrap; word-break: break-word; min-height: 1.7em;
+  }
+  .doc .empty { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Typewriter</h1>
+    <p>Tap the machine and start typing.</p>
+  </header>
+
+  <div class="stage" id="stage">
+    <svg id="tw" viewBox="0 0 760 580" role="img" aria-label="An interactive typewriter">
+      <defs>
+        <clipPath id="stageClip"><rect x="40" y="-320" width="680" height="630"/></clipPath>
+        <linearGradient id="paperShade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="rgba(0,0,0,0.06)"/>
+          <stop offset="0.06" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="0.94" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="1" stop-color="rgba(0,0,0,0.06)"/>
+        </linearGradient>
+      </defs>
+
+      <!-- carriage assembly, clipped to the machine frame so it slides behind the sides -->
+      <g clip-path="url(#stageClip)">
+        <g id="carriage">
+          <!-- paper + printed text feed up together on return -->
+          <g id="paperFeed">
+            <rect class="paper" x="170" y="-1500" width="470" height="2360" rx="7"/>
+            <rect x="170" y="-1500" width="470" height="2360" rx="7" fill="url(#paperShade)"/>
+            <g id="textLayer"></g>
+          </g>
+
+          <!-- platen roller + knobs (do not feed; only slide horizontally) -->
+          <rect class="platen" x="175" y="236" width="460" height="46" rx="23"/>
+          <rect class="platen-hi" x="175" y="243" width="460" height="8" rx="4" opacity="0.55"/>
+          <circle class="knob" cx="175" cy="259" r="29"/>
+          <circle class="knob-hi" cx="175" cy="259" r="14"/>
+          <circle class="knob" cx="635" cy="259" r="29"/>
+          <circle class="knob-hi" cx="635" cy="259" r="14"/>
+
+          <!-- paper bail with rollers -->
+          <rect class="bail" x="190" y="225" width="430" height="6" rx="3"/>
+          <circle class="bail" cx="230" cy="228" r="7"/>
+          <circle class="bail" cx="560" cy="228" r="7"/>
+
+          <!-- carriage-return lever (clickable) -->
+          <g id="lever" class="lever" tabindex="0" role="button" aria-label="Carriage return">
+            <rect x="92" y="214" width="60" height="11" rx="5"/>
+            <circle cx="92" cy="219" r="9"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- type-bar arm: swings up to the printing point (screen-x === printX) on each strike -->
+      <g id="typebar" class="typebar">
+        <rect x="226" y="206" width="8" height="96" rx="4"/>
+        <rect x="219" y="198" width="22" height="16" rx="3"/>
+      </g>
+
+      <!-- machine body -->
+      <path class="body" d="M 70 540 Q 46 540 46 512 L 70 326 Q 74 300 110 300 L 650 300 Q 686 300 690 326 L 714 512 Q 714 540 690 540 Z"/>
+      <path class="body-3" d="M 70 540 Q 46 540 46 512 L 58 420 L 702 420 L 714 512 Q 714 540 690 540 Z"/>
+      <rect class="body-2" x="120" y="312" width="520" height="20" rx="10" opacity="0.6"/>
+
+      <!-- keyboard (keys injected by script) -->
+      <g id="keys"></g>
+    </svg>
+    <textarea id="cap" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true"></textarea>
+  </div>
+
+  <div class="controls">
+    <button id="btn-view">View document</button>
+    <button id="btn-reset">Reset</button>
+    <button id="btn-theme">Theme: System</button>
+  </div>
+  <p class="hint" id="hint">A physical keyboard works too. Press Return for a new line.</p>
+
+  <div class="back"><a href="../">&larr; Back to Playground</a></div>
+
+  <!-- view-document overlay -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="doc">
+      <h2>YOUR DOCUMENT</h2>
+      <pre id="doc-body"></pre>
+    </div>
+    <div class="controls">
+      <button id="btn-share">Share</button>
+      <button id="btn-copy">Copy</button>
+      <button id="btn-download">Download</button>
+      <button id="btn-close">Close</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ----- geometry (SVG user units) -----
+  // printX is both column 0's local x AND the on-screen printing point: the
+  // carriage translates by -(col*charW), so the active character always lands
+  // at screen-x === printX. Sheet is sized so this point sits at its left margin.
+  var charW = 12, lineH = 22, maxChars = 30, printX = 230, printY = 200;
+
+  // ----- document model: typewriter-style, edits only at the current line end -----
+  var lines = [""], cur = 0;
+  function colLen() { return lines[cur].length; }
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var carriage = document.getElementById("carriage");
+  var paperFeed = document.getElementById("paperFeed");
+  var textLayer = document.getElementById("textLayer");
+  var typebar = document.getElementById("typebar");
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function render() {
+    carriage.setAttribute("transform", "translate(" + (-colLen() * charW) + ",0)");
+    paperFeed.setAttribute("transform", "translate(0," + (-cur * lineH) + ")");
+
+    var out = "";
+    for (var L = 0; L < lines.length; L++) {
+      var y = printY + L * lineH, s = lines[L], tsp = "";
+      for (var c = 0; c < s.length; c++) {
+        tsp += '<tspan x="' + (printX + c * charW) + '">' + esc(s[c]) + "</tspan>";
+      }
+      out += '<text class="ink" y="' + y + '">' + tsp + "</text>";
+    }
+    var cx = printX + colLen() * charW;
+    out += '<rect class="cursor" x="' + cx + '" y="' + (printY + 4) + '" width="' + (charW - 2) + '" height="3"/>';
+    textLayer.innerHTML = out;
+  }
+
+  // ----- key map for press animation + click-to-type -----
+  var keyEls = {}; // data-key -> element
+
+  function flashKey(k) {
+    var el = keyEls[k];
+    if (!el) return;
+    el.classList.add("down");
+    setTimeout(function () { el.classList.remove("down"); }, 110);
+  }
+
+  function strike() {
+    if (typebar.animate) {
+      typebar.animate(
+        [{ transform: "rotate(56deg)" }, { transform: "rotate(0deg)" }, { transform: "rotate(56deg)" }],
+        { duration: 130, easing: "ease-out" }
+      );
+    }
+  }
+
+  // ----- actions -----
+  function type(ch) {
+    if (colLen() >= maxChars) doReturn();   // soft right-margin: auto-wrap to a new line
+    lines[cur] += ch;
+    flashKey(ch === " " ? " " : ch.toLowerCase());
+    strike();
+    render();
+  }
+
+  function doReturn() {
+    lines.push("");
+    cur++;
+    carriage.classList.add("returning");
+    paperFeed.classList.add("returning");
+    flashKey("Enter");
+    render();
+    setTimeout(function () {
+      carriage.classList.remove("returning");
+      paperFeed.classList.remove("returning");
+    }, 280);
+  }
+
+  function backspace() {
+    if (colLen() > 0) lines[cur] = lines[cur].slice(0, -1);
+    else if (cur > 0) { lines.pop(); cur--; }
+    flashKey("Backspace");
+    render();
+  }
+
+  function reset() {
+    lines = [""]; cur = 0;
+    render();
+  }
+
+  function docText() {
+    return lines.join("\n").replace(/\s+$/, "");
+  }
+
+  // ----- build the keyboard -----
+  (function buildKeyboard() {
+    var g = document.getElementById("keys");
+    var R = 16;
+
+    function addKey(cx, cy, label, dataKey, fn, w) {
+      var key = document.createElementNS(SVGNS, "g");
+      key.setAttribute("class", "key" + (fn ? " fn" : ""));
+      var cap = document.createElementNS(SVGNS, "rect");
+      var width = w || R * 2, height = R * 2;
+      cap.setAttribute("class", "keycap");
+      cap.setAttribute("x", cx - width / 2);
+      cap.setAttribute("y", cy - height / 2);
+      cap.setAttribute("width", width);
+      cap.setAttribute("height", height);
+      cap.setAttribute("rx", fn ? 9 : R);
+      var txt = document.createElementNS(SVGNS, "text");
+      txt.setAttribute("class", "keytext");
+      txt.setAttribute("x", cx);
+      txt.setAttribute("y", cy);
+      if (w) txt.setAttribute("font-size", "11");
+      txt.textContent = label;
+      key.appendChild(cap); key.appendChild(txt);
+      key.addEventListener("pointerdown", function (e) {
+        e.preventDefault();
+        if (dataKey == null) { cap_focus(); return; }   // decorative key (e.g. shift)
+        if (dataKey === "Enter") doReturn();
+        else if (dataKey === "Backspace") backspace();
+        else type(dataKey);
+        cap_focus();
+      });
+      if (dataKey != null) keyEls[dataKey] = key;
+      g.appendChild(key);
+    }
+
+    var rows = [
+      { y: 348, start: 191, chars: "1234567890" },
+      { y: 390, start: 191, chars: "qwertyuiop" },
+      { y: 432, start: 212, chars: "asdfghjkl" },
+      { y: 474, start: 254, chars: "zxcvbnm" }
+    ];
+    rows.forEach(function (row) {
+      for (var i = 0; i < row.chars.length; i++) {
+        var ch = row.chars[i];
+        addKey(row.start + i * 42, row.y, ch.toUpperCase(), ch, false);
+      }
+    });
+
+    // function keys
+    addKey(648, 348, "del", "Backspace", true, 60);
+    addKey(648, 432, "return", "Enter", true, 78);
+    addKey(150, 474, "shift", null, true, 64);
+    addKey(380, 514, "", " ", false, 250); // space bar
+  })();
+
+  // ----- input capture (physical + soft keyboard) -----
+  var cap = document.getElementById("cap");
+  function cap_focus() { try { cap.focus({ preventScroll: true }); } catch (e) { cap.focus(); } }
+
+  window.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return; // leave browser shortcuts alone
+    if (document.getElementById("overlay").classList.contains("open")) return;
+    if (e.key === "Enter") { e.preventDefault(); doReturn(); }
+    else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
+    else if (e.key.length === 1) { e.preventDefault(); type(e.key); }
+  });
+
+  // fallback for soft keyboards that don't emit useful keydown events
+  cap.addEventListener("input", function () {
+    var v = cap.value;
+    cap.value = "";
+    if (!v || document.getElementById("overlay").classList.contains("open")) return;
+    for (var i = 0; i < v.length; i++) {
+      if (v[i] === "\n") doReturn(); else type(v[i]);
+    }
+  });
+
+  // tapping the machine summons the mobile keyboard (focus inside the gesture)
+  document.getElementById("stage").addEventListener("pointerdown", function () { cap_focus(); });
+
+  // carriage-return lever
+  var lever = document.getElementById("lever");
+  function pullLever() {
+    lever.classList.add("pull");
+    setTimeout(function () { lever.classList.remove("pull"); }, 180);
+    doReturn();
+  }
+  lever.addEventListener("pointerdown", function (e) { e.preventDefault(); e.stopPropagation(); pullLever(); cap_focus(); });
+  lever.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pullLever(); } });
+
+  // ----- controls -----
+  document.getElementById("btn-reset").addEventListener("click", function () {
+    if (docText() && !confirm("Clear the page and start over?")) return;
+    reset(); cap_focus();
+  });
+
+  var overlay = document.getElementById("overlay");
+  var docBody = document.getElementById("doc-body");
+  document.getElementById("btn-view").addEventListener("click", function () {
+    var t = docText();
+    if (t) { docBody.textContent = t; docBody.className = ""; }
+    else { docBody.textContent = "Nothing typed yet."; docBody.className = "empty"; }
+    overlay.classList.add("open");
+    overlay.setAttribute("aria-hidden", "false");
+  });
+  document.getElementById("btn-close").addEventListener("click", closeOverlay);
+  overlay.addEventListener("click", function (e) { if (e.target === overlay) closeOverlay(); });
+  function closeOverlay() {
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+
+  document.getElementById("btn-share").addEventListener("click", function () {
+    var text = docText();
+    if (!text) { alert("Type something first."); return; }
+    if (navigator.share) {
+      navigator.share({ title: "My typewritten note", text: text }).catch(function () {});
+    } else {
+      copyText(text, "Sharing isn't supported here, so the text was copied instead.");
+    }
+  });
+  document.getElementById("btn-copy").addEventListener("click", function () {
+    copyText(docText(), "Copied to clipboard.");
+  });
+  function copyText(text, msg) {
+    if (!text) { alert("Type something first."); return; }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function () { toast(msg); }, function () { toast("Copy failed."); });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); toast(msg); } catch (e) { toast("Copy failed."); }
+      document.body.removeChild(ta);
+    }
+  }
+  document.getElementById("btn-download").addEventListener("click", function () {
+    var text = docText();
+    if (!text) { alert("Type something first."); return; }
+    var blob = new Blob([text], { type: "text/plain" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "typewriter.txt";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    if (!t) {
+      t = document.createElement("div"); t.id = "toast";
+      t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);" +
+        "background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;" +
+        "font:600 14px system-ui;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.3);";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg; t.style.opacity = "1";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.opacity = "0"; t.style.transition = "opacity .4s"; }, 1800);
+  }
+
+  // ----- theme -----
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  var themeBtn = document.getElementById("btn-theme");
+  var meta = document.querySelector('meta[name="theme-color"]');
+  function applyTheme() {
+    var s = localStorage.getItem("tw-theme") || "system";
+    var root = document.documentElement;
+    if (s === "system") root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme", s);
+    themeBtn.textContent = "Theme: " + s.charAt(0).toUpperCase() + s.slice(1);
+    var dark = s === "dark" || (s === "system" && mq.matches);
+    meta.setAttribute("content", dark ? "#14171f" : "#f4efe6");
+  }
+  themeBtn.addEventListener("click", function () {
+    var order = ["system", "light", "dark"];
+    var s = localStorage.getItem("tw-theme") || "system";
+    localStorage.setItem("tw-theme", order[(order.indexOf(s) + 1) % 3]);
+    applyTheme();
+  });
+  mq.addEventListener("change", applyTheme);
+  applyTheme();
+
+  // ----- boot -----
+  render();
+  cap_focus();
+})();
+</script>
+</body>
+</html>
