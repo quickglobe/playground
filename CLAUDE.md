@@ -197,6 +197,11 @@ The site uses Lisse squircle `clip-path` on cards, buttons, and canvas wrappers.
 - **Use static snapshots, not live animations** — a running simulation in a landing-page preview card is distracting. Advance to a visually interesting state (e.g. 5 generations of Game of Life) and then stop; the canvas stays as a static image.
 - **Preview colors must match the actual app** — if the preview uses wrong colors (e.g. the landing page's `--teal` instead of the app's own red), it looks like a different product. Always sample the exact palette values from the app's CSS for the preview.
 
+## SVG path authoring
+
+- **Use cubic bezier pairs (`C…C`) for smooth curves, not `Q`/`L` mixes** — a `Q`-curve joined to an `L`-segment has mismatched tangent directions at the join, producing a visible kink. Cubic bezier pairs with shared control points guarantee tangent continuity at every join.
+- **Inscribed circles must not exceed half the containing bar's height** — a circle with radius > `barHeight/2` protrudes above and below the bar. Always set `r = floor(barHeight / 2)`.
+
 ## Working style
 
 - Prefer vanilla HTML/CSS/JS over frameworks unless the project is specifically exploring a framework
