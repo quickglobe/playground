@@ -260,8 +260,20 @@
     ctx.fillStyle = '#e08a6a';
     ctx.beginPath(); ctx.arc(sun.x, sun.y, 8, 0, Math.PI*2); ctx.fill();
   }
-  document.querySelectorAll(".life-scene").forEach(c => startLife(c));
-  document.querySelectorAll(".sun-scene").forEach(startSun);
+  function renderPreviews() {
+    document.querySelectorAll(".life-scene").forEach(c => startLife(c));
+    document.querySelectorAll(".sun-scene").forEach(startSun);
+  }
+  renderPreviews();
+  // Re-render the static previews when the theme changes (the life preview's
+  // colours track dark mode) and after a resize (the canvases render at CSS
+  // resolution, so a width change would otherwise leave them stretched/blurry).
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderPreviews);
+  let previewResizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(previewResizeTimer);
+    previewResizeTimer = setTimeout(renderPreviews, 200);
+  });
 </script>
 <script type="module">
   import { generateClipPath } from 'https://esm.sh/@lisse/core@0.4.0';

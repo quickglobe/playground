@@ -1074,24 +1074,33 @@ function tick() {
 }
 
 // ── Geolocation ───────────────────────────────────────────────────────
-navigator.geolocation.getCurrentPosition(
-  p => {
-    lat = p.coords.latitude;
-    lon = p.coords.longitude;
-    const latS = `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}`;
-    const lonS = `${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}`;
-    document.getElementById('location-notice').textContent = `${latS}  ${lonS}`;
-    lastDateStr = null;
-    tick();
-  },
-  () => {
-    lat = 37.77; lon = -122.42;
-    document.getElementById('location-notice').textContent = 'Location unavailable — showing San Francisco';
-    lastDateStr = null;
-    tick();
-  },
-  { enableHighAccuracy: false, timeout: 10000 }
-);
+function useFallbackLocation() {
+  lat = 37.77; lon = -122.42;
+  document.getElementById('location-notice').textContent = 'Location unavailable — showing San Francisco';
+  lastDateStr = null;
+  tick();
+}
+
+// Guard against the Geolocation API being absent (insecure context / old
+// browser): without this, getCurrentPosition would throw and abort the rest
+// of the script (clock, resize handler, interval), leaving a frozen page.
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    p => {
+      lat = p.coords.latitude;
+      lon = p.coords.longitude;
+      const latS = `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}`;
+      const lonS = `${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}`;
+      document.getElementById('location-notice').textContent = `${latS}  ${lonS}`;
+      lastDateStr = null;
+      tick();
+    },
+    useFallbackLocation,
+    { enableHighAccuracy: false, timeout: 10000 }
+  );
+} else {
+  useFallbackLocation();
+}
 
 window.addEventListener('resize', tick);
 setInterval(tick, 1000);
