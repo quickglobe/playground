@@ -284,6 +284,7 @@ let currentTheme = systemDark.matches ? 'dark' : 'light';
 function applyTheme(theme) {
   currentTheme = theme;
   document.body.dataset.theme = theme === 'light' ? 'light' : '';
+  needsDraw = true;
 }
 
 systemDark.addEventListener('change', e => applyTheme(e.matches ? 'dark' : 'light'));
@@ -295,6 +296,10 @@ let running = false;
 let frameInterval = 1000 / 10;
 let lastFrameTime = 0;
 let animId = null;
+// Draw only when something has actually changed (a step, an edit, a theme or
+// size change) instead of repainting every animation frame. While paused and
+// idle the rAF loop then does no work. Starts true so the first frame paints.
+let needsDraw = true;
 
 
 const canvas = document.getElementById('canvas');
@@ -333,6 +338,7 @@ function initSize() {
   // leaving room for the box's own border on each side.
   const maxGridW = availW - 2 * BOX_BORDER;
   const maxGridH = availH - 2 * BOX_BORDER;
+  const prevGrid = grid, prevCols = cols, prevRows = rows;
   cols = Math.max(MIN_CELLS, Math.floor(maxGridW / CELL));
   rows = Math.max(MIN_CELLS, Math.floor(maxGridH / CELL));
 
@@ -350,9 +356,19 @@ function initSize() {
 
   grid = makeGrid(cols, rows);
   nextGrid = makeGrid(cols, rows);
-  generation = 0;
+  // Preserve the existing pattern across a resize / orientation change instead
+  // of wiping it: copy the overlapping top-left region from the old grid, and
+  // keep the generation count. (First call has no previous grid; randomize()
+  // overwrites it at boot.)
+  if (prevGrid) {
+    const cc = Math.min(prevCols, cols), rr = Math.min(prevRows, rows);
+    for (let r = 0; r < rr; r++)
+      for (let c = 0; c < cc; c++)
+        grid[r * cols + c] = prevGrid[r * prevCols + c];
+  }
   updateGen();
   alignGenCounter();
+  needsDraw = true;
 }
 
 // The counter renders at one constant font size; only its horizontal offset
@@ -402,6 +418,7 @@ function applyGenLayout() {
 
 function randomize() {
   for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < 0.3 ? ALIVE : DEAD;
+  needsDraw = true;
 }
 
 function clearGrid() {
@@ -409,6 +426,7 @@ function clearGrid() {
   nextGrid.fill(DEAD);
   generation = 0;
   updateGen();
+  needsDraw = true;
 }
 
 // ── Game of Life step ──────────────────────────────────────────────────────────
@@ -478,8 +496,12 @@ function loop(ts) {
   if (running && ts - lastFrameTime >= frameInterval) {
     step();
     lastFrameTime = ts;
+    needsDraw = true;
   }
-  draw();
+  if (needsDraw) {
+    draw();
+    needsDraw = false;
+  }
 }
 
 // ── Controls ──────────────────────────────────────────────────────────────────
@@ -531,13 +553,14 @@ canvas.addEventListener('mousedown', e => {
   if (!cellInBounds(c, r)) return;
   drawMode = grid[idx(c, r)] === ALIVE ? DEAD : ALIVE;
   grid[idx(c, r)] = drawMode;
+  needsDraw = true;
 });
 
 canvas.addEventListener('mousemove', e => {
   if (running || drawMode === null) return;
   const rect = canvas.getBoundingClientRect();
   const { c, r } = screenToCell(e.clientX - rect.left, e.clientY - rect.top);
-  if (cellInBounds(c, r)) grid[idx(c, r)] = drawMode;
+  if (cellInBounds(c, r)) { grid[idx(c, r)] = drawMode; needsDraw = true; }
 });
 
 window.addEventListener('mouseup', () => { drawMode = null; });
@@ -559,6 +582,7 @@ canvas.addEventListener('touchstart', e => {
   if (cellInBounds(c, r)) {
     touchDrawMode = grid[idx(c, r)] === ALIVE ? DEAD : ALIVE;
     grid[idx(c, r)] = touchDrawMode;
+    needsDraw = true;
   }
 }, { passive: false });
 
@@ -567,7 +591,7 @@ canvas.addEventListener('touchmove', e => {
   if (running || touchDrawMode === null || e.touches.length !== 1) return;
   const pos = getTouchPos(e.touches[0]);
   const { c, r } = screenToCell(pos.x, pos.y);
-  if (cellInBounds(c, r)) grid[idx(c, r)] = touchDrawMode;
+  if (cellInBounds(c, r)) { grid[idx(c, r)] = touchDrawMode; needsDraw = true; }
 }, { passive: false });
 
 canvas.addEventListener('touchend', e => {
