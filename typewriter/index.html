@@ -117,6 +117,13 @@
     font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
     color: var(--fg); background: var(--btn-bg);
     border: 2px solid var(--btn-edge); border-radius: 999px;
+    /* clip from first paint so drop-shadow() composites against a clipped shape
+       up front (JS refines this to the Lisse squircle). Without an initial clip,
+       Safari caches the shadow against the un-clipped pill and a duplicate border
+       lingers below the button until a scroll forces a repaint. The pill clip
+       matches border-radius:999px, so the border is never cut and this also
+       degrades cleanly if the squircle module fails to load. */
+    clip-path: inset(0 round 999px);
     padding: 9px 16px; filter: drop-shadow(0 3px 0 var(--shadow));
     transition: transform .12s, filter .12s; -webkit-tap-highlight-color: transparent;
   }
@@ -542,11 +549,22 @@
 <script type="module">
   import { generateClipPath } from 'https://esm.sh/@lisse/core@0.4.0';
 
+  // Changing clip-path after first paint doesn't invalidate Safari's cached
+  // filter: drop-shadow() result, so the shadow keeps tracing the previous
+  // (pill) shape and a duplicate border lingers below the button. Briefly
+  // promoting the element to its own compositing layer forces a fresh composite
+  // -- the same thing a scroll does -- so the shadow follows the new squircle.
+  function forceShadowRepaint(el) {
+    el.style.transform = 'translateZ(0)';
+    requestAnimationFrame(function() { el.style.transform = ''; });
+  }
+
   document.querySelectorAll('button').forEach(function(el) {
     function update() {
       var rect = el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         el.style.clipPath = generateClipPath(rect.width, rect.height, { radius: Math.floor(rect.height / 2) });
+        forceShadowRepaint(el);
       }
     }
     new ResizeObserver(update).observe(el);
