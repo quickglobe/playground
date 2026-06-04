@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Favicon Preview</title>
+<style>
+  :root {
+    --bg: #f5f5f5;
+    --surface: #fff;
+    --border: #e0e0e0;
+    --text: #111;
+    --muted: #888;
+    --check-a: #ddd;
+    --check-b: #bbb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111;
+      --surface: #1e1e1e;
+      --border: #333;
+      --text: #eee;
+      --muted: #666;
+      --check-a: #2a2a2a;
+      --check-b: #1a1a1a;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 16px; }
+  h1 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+  .project { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+  .project-name { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+  .section { margin-bottom: 16px; }
+  .section-title { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .icons { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .icon-cell { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .icon-cell span { font-size: 10px; color: var(--muted); }
+  .check {
+    background-image:
+      linear-gradient(45deg, var(--check-a) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--check-a) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--check-a) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--check-a) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+    background-color: var(--check-b);
+    border-radius: 4px;
+    padding: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  img { display: block; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+</style>
+</head>
+<body>
+<h1>Favicon Preview</h1>
+<p class="subtitle">Branch: claude/favicon-audit-GxQji — all sizes and formats</p>
+
+<script>
+const projects = [
+  { id: 'root',         path: '',              label: 'root (landing page)' },
+  { id: 'game-of-life', path: 'game-of-life/', label: 'game-of-life' },
+  { id: 'sun-tracker',  path: 'sun-tracker/',  label: 'sun-tracker' },
+  { id: 'typewriter',   path: 'typewriter/',   label: 'typewriter' },
+];
+
+function cell(src, size, label, smooth) {
+  return `<div class="icon-cell">
+    <div class="check">
+      <img src="${src}" width="${size}" height="${size}" style="image-rendering:${smooth ? 'auto' : 'pixelated'}">
+    </div>
+    <span>${label}</span>
+  </div>`;
+}
+
+for (const p of projects) {
+  const el = document.createElement('div');
+  el.className = 'project';
+  el.innerHTML = `
+    <div class="project-name">${p.label}</div>
+
+    <div class="section">
+      <div class="section-title">SVG (scales to any size)</div>
+      <div class="icons">
+        ${cell(p.path + 'favicon.svg', 16, '16px', true)}
+        ${cell(p.path + 'favicon.svg', 32, '32px', true)}
+        ${cell(p.path + 'favicon.svg', 48, '48px', true)}
+        ${cell(p.path + 'favicon.svg', 96, '96px', true)}
+        ${cell(p.path + 'favicon.svg', 180, '180px', true)}
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="section">
+      <div class="section-title">PNG files (actual pixels, 4x upscaled)</div>
+      <div class="icons">
+        ${cell(p.path + 'favicon-16x16.png', 64, '16x16', false)}
+        ${cell(p.path + 'favicon-32x32.png', 128, '32x32', false)}
+        ${cell(p.path + 'apple-touch-icon.png', 90, 'apple 180px', true)}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(el);
+}
+</script>
+</body>
+</html>
