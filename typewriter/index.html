@@ -50,7 +50,7 @@
   body {
     background: var(--bg);
     color: var(--fg);
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: 'Cutive Mono', 'Courier New', monospace;
     -webkit-font-smoothing: antialiased;
     display: flex;
     flex-direction: column;
@@ -62,10 +62,9 @@
 
   header { text-align: center; margin: clamp(10px,3vw,24px) 0 6px; }
   header h1 {
-    font-family: 'Cutive Mono', monospace; font-weight: 400;
+    font-weight: 400;
     font-size: clamp(26px,6vw,40px); letter-spacing: 0.04em;
   }
-  header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
 
   .stage { position: relative; width: 100%; max-width: 660px; touch-action: manipulation; }
   #tw { display: block; width: 100%; height: auto; cursor: text; }
@@ -100,7 +99,7 @@
   .key        { cursor: pointer; }
   .keycap     { fill: var(--keycap); stroke: var(--key-edge); stroke-width: 1.5; transition: transform .07s ease, fill .07s ease; }
   .key.fn .keycap { fill: var(--keyfn); }
-  .keytext    { fill: var(--key-ink); font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .keytext    { fill: var(--key-ink); font-family: 'Cutive Mono', 'Courier New', monospace; font-size: 13px; font-weight: 400; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
   .key.down .keycap { transform: translateY(3px); fill: var(--key-down); }
   .key.down .keytext { transform: translateY(3px); }
   .keytext, .keycap { transition: transform .07s ease, fill .07s ease; }
@@ -114,7 +113,7 @@
   /* ---- controls ---- */
   .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0 6px; }
   button {
-    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    font-size: 14px; font-weight: 400; cursor: pointer;
     color: var(--fg); background: var(--btn-bg);
     border: 2px solid var(--btn-edge); border-radius: 999px;
     /* clip from first paint so drop-shadow() composites against a clipped shape
@@ -167,7 +166,6 @@
 <body>
   <header>
     <h1>Typewriter</h1>
-    <p>Tap the machine and start typing.</p>
   </header>
 
   <div class="stage" id="stage">
