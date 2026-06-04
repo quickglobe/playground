@@ -386,7 +386,7 @@
       cap.setAttribute("y", cy - height / 2);
       cap.setAttribute("width", width);
       cap.setAttribute("height", height);
-      cap.setAttribute("rx", fn ? 9 : R);
+      cap.setAttribute("rx", R);
       var txt = document.createElementNS(SVGNS, "text");
       txt.setAttribute("class", "keytext");
       txt.setAttribute("x", cx);
@@ -420,9 +420,9 @@
     });
 
     // function keys
-    addKey(615, 362, "del", "Backspace", true, 60);
-    addKey(610, 446, "return", "Enter", true, 78);
-    addKey(188, 488, "shift", null, true, 64);
+    addKey(625, 362, "del", "Backspace", true, 60);
+    addKey(613, 446, "return", "Enter", true, 78);
+    addKey(196, 488, "shift", null, true, 64);
     addKey(380, 530, "", " ", false, 250); // space bar
   })();
 
