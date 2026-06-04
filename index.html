@@ -53,7 +53,7 @@
   .b3 { width: 120px; height: 120px; background: var(--teal-soft); top: 60%; right: 14%; animation: float 11s ease-in-out infinite; }
   @keyframes float { 0%,100%{ transform: translateY(0) rotate(0); } 50%{ transform: translateY(-26px) rotate(18deg); } }
 
-  .wrap { max-width: 980px; margin: 0 auto; padding: clamp(28px,6vw,64px) clamp(20px,5vw,40px) 80px; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: clamp(28px,6vw,64px) clamp(20px,5vw,48px) 80px; }
   header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: clamp(36px,7vw,64px); }
   .brand { flex: 1; min-width: 0; }
   .brand h1 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(38px,8vw,64px); letter-spacing: -0.02em; line-height: 1.0; }
@@ -62,7 +62,7 @@
   @media (hover: hover) { .brand h1:hover .pop { animation: wiggle 0.5s ease-in-out 1; } }
   .brand p { font-size: clamp(15px,2.5vw,18px); color: var(--muted); margin-top: 16px; font-weight: 500; }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: clamp(20px,3.5vw,30px); }
+  .grid { display: grid; grid-template-columns: 1fr; gap: clamp(16px,3vw,24px); }
   .card-wrap {
     background: var(--card-brd); padding: 3px; border-radius: 29px;
     will-change: transform;
@@ -108,6 +108,37 @@
   footer { margin-top: 54px; display: flex; gap: 14px; align-items: center; color: var(--muted); font-weight: 600; font-size: 14px; flex-wrap: wrap; }
   footer a { color: var(--text); text-decoration: none; padding: 6px 12px; border: 2px solid var(--card-brd); border-radius: 999px; background: var(--surface); transition: transform 0.15s; }
   footer a:hover { transform: translate(-2px,-2px); }
+
+  /* Header actions: project count + GitHub — shown only on desktop */
+  .header-actions { display: none; flex-direction: column; align-items: flex-end; gap: 14px; flex-shrink: 0; }
+  .hdr-count { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .hdr-link { color: var(--text); text-decoration: none; padding: 8px 18px; border: 2px solid var(--card-brd); border-radius: 999px; background: var(--surface); font-weight: 600; font-size: 14px; white-space: nowrap; }
+  @media (hover: hover) and (pointer: fine) {
+    .hdr-link { transition: transform 0.15s; }
+    .hdr-link:hover { transform: translate(-2px,-2px); }
+  }
+
+  /* 2 columns from 600px */
+  @media (min-width: 600px) {
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  }
+
+  /* 3-column desktop layout from 900px */
+  @media (min-width: 900px) {
+    .grid { grid-template-columns: repeat(3, 1fr); gap: 28px; }
+    .preview { height: 220px; }
+    .card { padding: 16px; }
+    .meta { padding: 20px 10px 10px; }
+    .meta h2 { font-size: 26px; }
+    .meta p { font-size: 15.5px; }
+    /* Larger background blobs */
+    .b1 { width: 380px; height: 380px; right: -100px; top: 8%; }
+    .b2 { width: 300px; height: 300px; left: -80px; bottom: 6%; }
+    .b3 { width: 200px; height: 200px; }
+    /* Move GitHub link to header, hide from footer */
+    .footer-gh { display: none; }
+    .header-actions { display: flex; }
+  }
 </style>
 </head>
 <body>
@@ -118,11 +149,15 @@
       <h1>Play<span class="pop">ground</span></h1>
       <p>Fun experiments &amp; side projects.</p>
     </div>
+    <div class="header-actions">
+      <span class="hdr-count" id="project-count"></span>
+      <a href="https://github.com/quickglobe/playground" target="_blank" rel="noopener" class="hdr-link">GitHub ↗</a>
+    </div>
   </header>
 
   <main class="grid" id="grid"></main>
 
-  <footer><span>Made for the fun of it | 100% vibe-coded</span><a href="https://github.com/quickglobe/playground" target="_blank" rel="noopener">GitHub ↗</a></footer>
+  <footer><span>Made for the fun of it | 100% vibe-coded</span><a href="https://github.com/quickglobe/playground" target="_blank" rel="noopener" class="footer-gh">GitHub ↗</a></footer>
 </div>
 
 <script>
@@ -132,6 +167,8 @@
     { title: "Game of Life", tag: "Simulation", chip: "c-teal", desc: "A classic simulation of Conway's Game of Life.", url: "game-of-life/", preview: "life" },
     { title: "Typewriter", tag: "Writing", chip: "c-blue", desc: "A working SVG typewriter — keys depress, type-bars strike, the page rolls along.", url: "typewriter/", preview: "type" },
   ];
+
+  document.getElementById("project-count").textContent = PROJECTS.length + " project" + (PROJECTS.length !== 1 ? "s" : "");
 
   function previewHTML(kind) {
     if (kind === "sun") return `<canvas class="sun-scene"></canvas>`;
