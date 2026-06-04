@@ -3,7 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Favicon Preview</title>
+<title>Favicon Audit</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1a1040">
 <style>
   :root {
     --bg: #f5f5f5;
@@ -54,15 +60,15 @@
 </style>
 </head>
 <body>
-<h1>Favicon Preview</h1>
-<p class="subtitle">Branch: claude/favicon-audit-GxQji — all sizes and formats</p>
+<h1>Favicon Audit</h1>
+<p class="subtitle">All projects — every size and format</p>
 
 <script>
 const projects = [
-  { id: 'root',         path: '',              label: 'root (landing page)' },
-  { id: 'game-of-life', path: 'game-of-life/', label: 'game-of-life' },
-  { id: 'sun-tracker',  path: 'sun-tracker/',  label: 'sun-tracker' },
-  { id: 'typewriter',   path: 'typewriter/',   label: 'typewriter' },
+  { id: 'root',         path: '../',              label: 'root (landing page)' },
+  { id: 'game-of-life', path: '../game-of-life/', label: 'game-of-life' },
+  { id: 'sun-tracker',  path: '../sun-tracker/',  label: 'sun-tracker' },
+  { id: 'typewriter',   path: '../typewriter/',   label: 'typewriter' },
 ];
 
 function cell(src, size, label, smooth) {
