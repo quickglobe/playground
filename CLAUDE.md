@@ -103,6 +103,8 @@ To add icons for a new project:
 
 Browsers cache favicons aggressively; a hard refresh (or re-adding the home-screen bookmark on iOS) may be needed to see updates.
 
+**Auditing icons:** `favicon-audit/index.html` renders every project's SVG, PNGs, and apple-touch-icon side by side at all sizes. Use it to spot rendering inconsistencies before merging. The `.ico` files should have 16/32/48px frames; source the 16px and 32px frames from the existing PNGs (not directly from the SVG) so the ICO exactly matches the PNGs — cairosvg can produce different gradient rendering than what Pillow or an earlier tool generated.
+
 ## Mobile and touch device patterns
 
 - Gate `:hover` and `:active` styles with `@media (hover: hover)` — touch browsers fire `:hover` on tap and leave it active until the next interaction ("sticky hover"). Always scope hover color changes to `@media (hover: hover)` so they never activate on tap.
