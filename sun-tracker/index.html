@@ -1080,8 +1080,12 @@ function startReveal(now) {
   // moment the reveal edge reaches nowX, so the eased deceleration — not the
   // hard min — owns the final stop. All x's derive from nowMin/1440, which is
   // resolution-independent, so a resize mid-reveal stays consistent.
-  const t2Start = performance.now();
+  // t2Start is stamped on phase 2's first frame, not here — phase 1 runs for
+  // ~SETTLE_MS first, so capturing it now would start phase 2 already most of
+  // the way through (it would skip straight to the line near its end).
+  let t2Start = null;
   function revealFrame(t) {
+    if (t2Start === null) t2Start = t;
     const W = window.innerWidth, H = window.innerHeight;
     const k = Math.min(1, (t - t2Start) / REVEAL_MS);
     const nowMin = currentMinute(new Date());
