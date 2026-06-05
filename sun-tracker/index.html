@@ -1038,10 +1038,11 @@ function revealData() {
 }
 
 // ── Reveal transition ─────────────────────────────────────────────────
-// A two-phase loading flourish, run once location (real or fallback)
-// resolves. Phase 1 settles the background night -> located while the curve
-// and sun stay hidden; phase 2 sweeps the curve in left->right and walks the
-// sun along it to its true current-time position.
+// A loading flourish, run once location (real or fallback) resolves. The
+// background crossfade and the line/sun reveal play concurrently from one
+// clock: the palette settles night -> located while, at the same time, the
+// curve sweeps in left->right and the sun walks along it to its true
+// current-time position.
 function startReveal(now) {
   revealing = true;
 
@@ -1054,56 +1055,45 @@ function startReveal(now) {
   applyPalette(target);                    // CSS fades chrome + text night -> located
   revealData();                            // fades the stat blocks in
 
-  // ── Phase 1: background crossfade (no curve, no sun) ────────────────
-  // The canvas palette tween rides the same "ease" curve and duration as the
-  // CSS chrome/text transitions, so they move together. The sun's altitude is
-  // lerped only so the haze/stars track the brightening sky.
-  const t1Start = performance.now();
-  function settleFrame(t) {
-    const k = Math.min(1, (t - t1Start) / SETTLE_MS);
-    const e = easeStd(k);
+  // One clock drives both animations together:
+  //   e (eased, over SETTLE_MS) — palette crossfade night -> located, matched
+  //     to the CSS chrome/text transitions so the canvas and OS bars move
+  //     together. The sun altitude fed to drawScene is lerped from it, so the
+  //     haze and stars track the brightening sky.
+  //   k (linear, over REVEAL_MS) — the curve's reveal. rx is the clip edge
+  //     sweeping 0 -> W: the line is stationary but its exposed leading edge
+  //     glides across. The sun rides that edge at first (the min keeps it on
+  //     revealed line, so it shares the line's x-pace), then the eased term to
+  //     its true home (nowX) becomes binding and it decelerates to a gentle
+  //     stop exactly on its current-time spot while the line sweeps on to the
+  //     screen edge. Its y is read off the curve every frame, so it tracks the
+  //     path the whole way. tSun is set just past the moment the reveal edge
+  //     reaches nowX, so the eased deceleration — not the hard min — owns the
+  //     final stop. All x's derive from nowMin/1440, which is
+  //     resolution-independent, so a resize mid-reveal stays consistent.
+  const start = performance.now();
+  function frame(t) {
+    const W = window.innerWidth, H = window.innerHeight;
+    const elapsed = t - start;
+    const e = easeStd(Math.min(1, elapsed / SETTLE_MS));
+    const k = Math.min(1, elapsed / REVEAL_MS);
     const pal = lerpPalette(NIGHT, target, e);
     const ap = { alt: -90 + (realAlt + 90) * e };
-    drawScene(window.innerWidth, window.innerHeight, pal, today, currentMinute(new Date()), ap, { arcRevealX: 0, showSun: false });
-    if (k < 1) requestAnimationFrame(settleFrame);
-    else requestAnimationFrame(revealFrame);
-  }
-
-  // ── Phase 2: reveal the line + walk the sun along it ────────────────
-  // rx is the clip edge, sweeping 0 -> W linearly: the line is stationary but
-  // its exposed leading edge glides across. The sun rides that edge at first
-  // (the min keeps it on revealed line, so it shares the line's x-pace), then
-  // the eased term to its true home (nowX) becomes binding and it decelerates
-  // to a gentle stop exactly on its current-time spot while the line sweeps on
-  // to the screen edge. Its y is read off the curve every frame, so it tracks
-  // the path the whole way. tSun (in [0,1] of phase 2) is set just past the
-  // moment the reveal edge reaches nowX, so the eased deceleration — not the
-  // hard min — owns the final stop. All x's derive from nowMin/1440, which is
-  // resolution-independent, so a resize mid-reveal stays consistent.
-  // t2Start is stamped on phase 2's first frame, not here — phase 1 runs for
-  // ~SETTLE_MS first, so capturing it now would start phase 2 already most of
-  // the way through (it would skip straight to the line near its end).
-  let t2Start = null;
-  function revealFrame(t) {
-    if (t2Start === null) t2Start = t;
-    const W = window.innerWidth, H = window.innerHeight;
-    const k = Math.min(1, (t - t2Start) / REVEAL_MS);
     const nowMin = currentMinute(new Date());
     const homeFrac = nowMin / 1440;          // sun's true x as a fraction of W
     const nowX = homeFrac * W;
     const tSun = Math.min(0.95, homeFrac + 0.3);
     const rx = W * k;                        // reveal edge
     const sunX = Math.min(rx, nowX * easeOutCubic(Math.min(1, k / tSun)));
-    drawScene(W, H, target, today, nowMin, { alt: realAlt }, { arcRevealX: rx, showSun: true, sunX });
-    if (k < 1) {
-      requestAnimationFrame(revealFrame);
+    drawScene(W, H, pal, today, nowMin, ap, { arcRevealX: rx, showSun: true, sunX });
+    if (elapsed < Math.max(SETTLE_MS, REVEAL_MS)) {
+      requestAnimationFrame(frame);
     } else {
       revealing = false;
       updateUI(new Date());
     }
   }
-
-  requestAnimationFrame(settleFrame);
+  requestAnimationFrame(frame);
 }
 
 // ── Tick ──────────────────────────────────────────────────────────────
