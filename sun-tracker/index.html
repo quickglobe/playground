@@ -153,8 +153,9 @@ body {
   border-top: 1px solid;
 }
 
+.hyb-cell { text-align: center; }
 .hyb-cell-mid { text-align: center; }
-.hyb-cell-end { text-align: right; }
+.hyb-cell-end { text-align: center; }
 
 .hyb-cell-label {
   font-size: 9.5px;
@@ -291,6 +292,7 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: 0 4px;
+  text-align: center;
 }
 
 .hyw-cell-label {
@@ -315,7 +317,7 @@ body {
 }
 
 .hyw-cell-mid { text-align: center; }
-.hyw-cell-end { text-align: right; }
+.hyw-cell-end { text-align: center; }
 
 /* ── Location notice ─────────────────────────────────── */
 #location-notice {
@@ -843,32 +845,45 @@ function applyPalette(palette) {
   const fgDim  = bgDark ? 'rgba(246,239,224,0.55)' : 'rgba(21,20,14,0.55)';
   const ruleC  = bgDark ? 'rgba(246,239,224,0.18)' : 'rgba(21,20,14,0.18)';
   const accent = p.accent || '#5b6f9c';
-  const unitC  = `color-mix(in srgb, ${fg} 58%, transparent)`;
+
+  // Per-group font-colour overrides from the Tweaks panel, scoped to the
+  // current time-of-day phase (scenePhase). Each group falls back to its
+  // scene-derived colour ('auto'). Three sensible groupings:
+  //   heroC  — the big daylight figure (the hero numerals + their units)
+  //   dataC  — the clock and every numeric readout / delta
+  //   labelC — labels, dates, phase and the location caption
+  const tw = window.__sunTweaks || {};
+  const pc = (tw.colors && tw.colors[scenePhase]) || {};
+  const ov = (v, fallback) => (v && v !== 'auto') ? v : fallback;
+  const heroC  = ov(pc.hero,  fg);
+  const dataC  = ov(pc.data,  accent);
+  const labelC = ov(pc.label, fgDim);
+  const unitC  = `color-mix(in srgb, ${heroC} 58%, transparent)`;
 
   // Portrait
-  document.getElementById('p-clock').style.color      = accent;
-  document.getElementById('p-date').style.color       = fgDim;
-  document.getElementById('p-hero-label').style.color = fgDim;
-  for (const el of document.querySelectorAll('.hyb-hero-h, .hyb-hero-m')) el.style.color = fg;
+  document.getElementById('p-clock').style.color      = dataC;
+  document.getElementById('p-date').style.color       = labelC;
+  document.getElementById('p-hero-label').style.color = labelC;
+  for (const el of document.querySelectorAll('.hyb-hero-h, .hyb-hero-m')) el.style.color = heroC;
   for (const el of document.querySelectorAll('.hyb-hero-unit')) el.style.color = unitC;
-  for (const el of document.querySelectorAll('.hyb-cell-label')) el.style.color = fgDim;
-  for (const el of document.querySelectorAll('.hyb-cell-val'))   el.style.color = accent;
+  for (const el of document.querySelectorAll('.hyb-cell-label')) el.style.color = labelC;
+  for (const el of document.querySelectorAll('.hyb-cell-val'))   el.style.color = dataC;
   document.getElementById('p-row2').style.borderColor = ruleC;
 
   // Landscape
-  document.getElementById('l-clock').style.color       = accent;
-  document.getElementById('l-phase').style.color       = fgDim;
-  document.getElementById('l-date').style.color        = fgDim;
-  document.getElementById('l-hero-label').style.color  = fgDim;
-  for (const el of document.querySelectorAll('.hyw-hero-h, .hyw-hero-m')) el.style.color = fg;
+  document.getElementById('l-clock').style.color       = dataC;
+  document.getElementById('l-phase').style.color       = labelC;
+  document.getElementById('l-date').style.color        = labelC;
+  document.getElementById('l-hero-label').style.color  = labelC;
+  for (const el of document.querySelectorAll('.hyw-hero-h, .hyw-hero-m')) el.style.color = heroC;
   for (const el of document.querySelectorAll('.hyw-hero-unit')) el.style.color = unitC;
-  document.getElementById('l-delta-head').style.color  = fgDim;
-  document.getElementById('l-delta-val').style.color   = accent;
-  for (const el of document.querySelectorAll('.hyw-cell-label')) el.style.color = fgDim;
-  for (const el of document.querySelectorAll('.hyw-cell-val'))   el.style.color = accent;
+  document.getElementById('l-delta-head').style.color  = labelC;
+  document.getElementById('l-delta-val').style.color   = dataC;
+  for (const el of document.querySelectorAll('.hyw-cell-label')) el.style.color = labelC;
+  for (const el of document.querySelectorAll('.hyw-cell-val'))   el.style.color = dataC;
   document.getElementById('l-bottom').style.borderColor = ruleC;
 
-  document.getElementById('location-notice').style.color = fg;
+  document.getElementById('location-notice').style.color = labelC;
 
   // Full bleed: drive the OS chrome from the gradient's edge colours.
   // The sky gradient runs from p.sky at the top to darken(p.bg, 0.32) at
@@ -884,6 +899,73 @@ function applyPalette(palette) {
   // and Android Chrome, where it colours the top status bar.
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) themeMeta.setAttribute('content', skyTop);
+}
+
+// ── Tweaks bridge ─────────────────────────────────────────────────────
+// Populated by the React Tweaks panel (app-tweaks.jsx). Kept on window so
+// the panel (a separate classic/Babel script) and this script share one
+// source of truth without relying on cross-script lexical bindings.
+//   time   — 'live' or a number of hours (0–24) to freeze the scene at
+//   colors — per-phase font-colour overrides, keyed by time-of-day bucket
+//            (dawn/day/dusk/night). Each holds { hero, data, label }, every
+//            value either 'auto' (scene-derived) or a hex string. This lets a
+//            different colour be chosen for, say, dawn vs day.
+function __emptyPhaseColors() {
+  return { hero: 'auto', data: 'auto', label: 'auto', sun: 'auto' };
+}
+
+// Per-phase override for the sun glyph + 24h path + horizon haze, which all
+// draw from palette.accent. Returns a palette clone with accent swapped when
+// the active phase has a sun colour set; otherwise the palette untouched. Kept
+// separate from applyPalette so the canvas accent can diverge from the text
+// 'data' default colour (which still follows the scene-derived accent).
+function withSunOverride(palette, phase) {
+  const tw = window.__sunTweaks || {};
+  const pc = (tw.colors && tw.colors[phase]) || {};
+  if (pc.sun && pc.sun !== 'auto') return { ...palette, accent: pc.sun };
+  return palette;
+}
+window.__sunTweaks = window.__sunTweaks || {
+  time: 'live',
+  colors: {
+    dawn:  { ...__emptyPhaseColors(), data: '#c98a3a' },
+    day:   { ...__emptyPhaseColors(), data: '#5b6f9c', sun: '#ffb43a' },
+    dusk:  { ...__emptyPhaseColors(), data: '#c98a3a' },
+    night: __emptyPhaseColors(),
+  },
+};
+
+// Which broad time-of-day the scene is in right now. Drives which set of
+// per-phase colour overrides applyPalette uses, and is broadcast to the Tweaks
+// panel (via a 'scenephase' event) so its swatches edit the active phase.
+let scenePhase = 'night';
+window.__scenePhase = scenePhase;
+// Day begins when the sun is well up (>=18° altitude) rather than just barely
+// risen. At Aberdeen (57°N) that lands the morning dawn->day handoff around
+// 07:00 in early summer; being altitude-based it drifts later through the year,
+// which is correct (there is no 07:00 "day" in a Scottish midwinter). Symmetric,
+// so the evening day->dusk handoff also happens while the sun is still 18° up.
+const DAY_ALT = 18;
+function phaseBucket(alt, afterNoon) {
+  if (alt >= DAY_ALT) return 'day';
+  if (alt < -6)       return 'night';
+  return afterNoon ? 'dusk' : 'dawn';
+}
+function setScenePhase(p) {
+  if (p === scenePhase) return;
+  scenePhase = p;
+  window.__scenePhase = p;
+  window.dispatchEvent(new CustomEvent('scenephase', { detail: p }));
+}
+
+// Real clock, unless the Tweaks panel pins the scene to a fixed time of day.
+function effectiveNow() {
+  const tw = window.__sunTweaks || {};
+  if (tw.time == null || tw.time === 'live') return new Date();
+  const d = new Date();
+  const mins = Math.max(0, Math.min(1439.99, Number(tw.time) * 60));
+  d.setHours(Math.floor(mins / 60), Math.round(mins % 60), 0, 0);
+  return d;
 }
 
 // ── State ─────────────────────────────────────────────────────────────
@@ -966,7 +1048,9 @@ function updateUI(now) {
   palette = paletteForAltitude(pos.alt);
 
   const nowMin = currentMinute(now);
-  drawScene(window.innerWidth, window.innerHeight, palette, today, nowMin, pos);
+  const noonMin = (today && today.solarNoon != null) ? today.solarNoon : 720;
+  setScenePhase(phaseBucket(pos.alt, nowMin > noonMin));
+  drawScene(window.innerWidth, window.innerHeight, withSunOverride(palette, scenePhase), today, nowMin, pos);
   applyPalette(palette);
 
   updateReadouts(now, nowMin);
@@ -1052,6 +1136,8 @@ function startReveal(now) {
   const realAlt = pos.alt;
 
   updateReadouts(now, currentMinute(now)); // populates today + all stat values
+  const noonMin = (today && today.solarNoon != null) ? today.solarNoon : 720;
+  setScenePhase(phaseBucket(realAlt, currentMinute(now) > noonMin));
   applyPalette(target);                    // CSS fades chrome + text night -> located
   revealData();                            // fades the stat blocks in
 
@@ -1085,7 +1171,7 @@ function startReveal(now) {
     const tSun = Math.min(0.95, homeFrac + 0.3);
     const rx = W * k;                        // reveal edge
     const sunX = Math.min(rx, nowX * easeOutCubic(Math.min(1, k / tSun)));
-    drawScene(W, H, pal, today, nowMin, ap, { arcRevealX: rx, showSun: true, sunX });
+    drawScene(W, H, withSunOverride(pal, scenePhase), today, nowMin, ap, { arcRevealX: rx, showSun: true, sunX });
     if (elapsed < Math.max(SETTLE_MS, REVEAL_MS)) {
       requestAnimationFrame(frame);
     } else {
@@ -1098,11 +1184,12 @@ function startReveal(now) {
 
 // ── Tick ──────────────────────────────────────────────────────────────
 function tick() {
-  const now = new Date();
+  const now = effectiveNow();
   if (lat == null) {
     // Loading hold: night background only — no curve, no sun — so it reads as a
     // deliberate blank canvas rather than a frozen, half-rendered scene.
     drawScene(window.innerWidth, window.innerHeight, NIGHT, DEFAULT_ALM, currentMinute(now), null, { arcRevealX: 0, showSun: false });
+    setScenePhase('night');
     applyPalette(NIGHT);
     setClockText(now);
     setDateText(now);
@@ -1149,9 +1236,27 @@ if (navigator.geolocation) {
   useFallbackLocation();
 }
 
+// Let the Tweaks panel force an immediate redraw when a tweak changes.
+window.__sunTick = tick;
+
 window.addEventListener('resize', tick);
 setInterval(tick, 1000);
 tick();
 </script>
+
+<!-- ── Tweaks panel removed for production ──────────────────────────────
+   This is the standalone deploy build: the colour scheme is baked into the
+   window.__sunTweaks default near the top of the scene script (dawn/dusk data
+   = warm gold, day data = dusk blue, day sun & path = amber), and the Tweaks
+   panel + React/Babel are intentionally omitted so this file is fully
+   self-contained with no external dependencies.
+
+   To re-enable live tweaking, restore the panel scaffold below and the colour
+   defaults will become its starting point again:
+     <div id="tweaks-root"></div>
+     <script src="…react…"></script>  (react, react-dom, babel)
+     <script type="text/babel" src="tweaks-panel.jsx"></script>
+     <script type="text/babel" src="app-tweaks.jsx"></script>
+   The panel-wired version is preserved as index-tweakable.html. -->
 </body>
 </html>
