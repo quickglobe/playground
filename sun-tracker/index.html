@@ -377,6 +377,108 @@ body {
   background-color: #05050b;
   transition: background-color 1.2s ease;
 }
+
+/* ── Location permission dialog ──────────────────────────
+   A centered modal over the live holding scene. It explains
+   why location is needed and gates the geolocation request
+   so the OS prompt only appears after the user opts in. */
+#loc-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+#loc-gate[hidden] { display: none; }
+#loc-gate.lg-out { opacity: 0; pointer-events: none; }
+
+/* Dialog type tokens (Spectral, app palette) */
+.dlg-eyebrow {
+  font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+  font-weight: 500; color: rgba(130,150,196,0.92);
+}
+.dlg-title {
+  font-size: 25px; font-weight: 500; letter-spacing: -0.015em;
+  color: #f6efe0; line-height: 1.1;
+}
+.dlg-body {
+  font-size: 14px; line-height: 1.62; font-weight: 400;
+  color: rgba(246,239,224,0.6); text-wrap: pretty;
+}
+.dlg-body + .dlg-body { margin-top: 13px; }
+.dlg-body em { font-style: normal; color: rgba(246,239,224,0.82); }
+
+.glyph {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, #b6c5e6, #6076a0 58%, #46568200 78%);
+  box-shadow: 0 0 26px rgba(122,143,191,0.5), 0 0 0 1px rgba(246,239,224,0.14),
+              inset 0 1px 1px rgba(255,255,255,0.35);
+}
+
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  height: 50px; border-radius: 13px; cursor: pointer;
+  font-family: inherit; font-size: 14.5px; font-weight: 500;
+  letter-spacing: 0.005em; border: 1px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .25s ease, border-color .25s ease, color .25s ease, transform .12s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  color: #f4f1e8;
+  background: linear-gradient(180deg, #44537d, #38456a);
+  border-color: rgba(146,166,210,0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 24px rgba(20,28,52,0.5);
+}
+.btn-primary:hover { background: linear-gradient(180deg, #4e5e8d, #404f78); }
+.btn-ghost {
+  color: rgba(246,239,224,0.62); background: transparent;
+  border-color: rgba(246,239,224,0.14);
+}
+.btn-ghost:hover { color: rgba(246,239,224,0.85); border-color: rgba(246,239,224,0.26); }
+
+/* Centered modal */
+.lg-scrim {
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 80% at 50% 42%, rgba(7,8,18,0.34), rgba(5,6,14,0.72));
+  display: flex; align-items: center; justify-content: center; padding: 26px;
+}
+.lg-card {
+  width: 100%; max-width: 340px;
+  background: linear-gradient(180deg, rgba(18,22,38,0.86), rgba(11,13,24,0.9));
+  border: 1px solid rgba(246,239,224,0.1); border-radius: 22px;
+  padding: 30px 28px 26px;
+  backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+  text-align: center;
+  transform: translateY(10px) scale(0.985);
+  transition: transform 0.55s cubic-bezier(.2,.8,.2,1);
+}
+.lg-shown .lg-card { transform: none; }
+.lg-card .glyph { margin: 0 auto 18px; }
+.lg-card .dlg-eyebrow { margin-bottom: 11px; }
+.lg-card .dlg-title { margin-bottom: 16px; }
+.lg-card .dlg-body { text-align: left; }
+.lg-actions { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Desktop / landscape: widen toward a squarer card, with the two
+   actions sitting side by side so the block isn't tall and narrow. */
+@media (orientation: landscape) and (min-width: 640px) {
+  .lg-card {
+    max-width: 520px;
+    padding: 42px 46px 36px;
+    border-radius: 26px;
+  }
+  .lg-card .glyph { width: 50px; height: 50px; margin-bottom: 22px; }
+  .lg-card .dlg-title { font-size: 30px; margin-bottom: 18px; }
+  .lg-card .dlg-body { font-size: 15px; }
+  .lg-actions { margin-top: 30px; flex-direction: row-reverse; gap: 12px; }
+  .lg-actions .btn { flex: 1; height: 52px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-card { transition: opacity 0.3s ease; transform: none !important; }
+}
 </style>
 </head>
 <body>
@@ -478,6 +580,23 @@ body {
   </div>
 
   <div id="location-notice"></div>
+
+  <!-- ── Location permission dialog ─────────────────────── -->
+  <div id="loc-gate" role="dialog" aria-modal="true" aria-labelledby="lg-title" hidden>
+    <div class="lg-scrim">
+      <div class="lg-card">
+        <div class="glyph"></div>
+        <div class="dlg-eyebrow">Location access</div>
+        <div class="dlg-title" id="lg-title">Find your sun</div>
+        <p class="dlg-body">Sun&nbsp;tracker calculates the sun's exact position in the sky for where you are right now, giving you accurate sunrise, sunset, daylight hours, and position information.</p>
+        <p class="dlg-body">Your location is only used for this calculation. <em>It never leaves your device, it is never stored, and no server ever sees it.</em> If you decline, the app will use Greenwich, London for the calculations instead.</p>
+        <div class="lg-actions">
+          <button class="btn btn-primary lg-allow">Use my location</button>
+          <button class="btn btn-ghost lg-decline">Use Greenwich instead</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -752,11 +871,13 @@ function drawScene(W, H, palette, today, nowMin, pos, opts) {
   ctx.fillRect(0, 0, W, H);
 
   // Horizon haze
-  const accent = p.accent || '#5b6f9c';
+  const accent    = p.accent || '#5b6f9c';
+  const pathColor = p.path || accent;   // 24h arc + ticks + horizon haze
+  const sunColor  = p.sun  || accent;   // sun glyph
   const sunAlt = pos ? pos.alt : -90;
   const haze = ctx.createLinearGradient(0, horizonY - H * 0.08, 0, horizonY + H * 0.02);
   haze.addColorStop(0, 'rgba(255,255,255,0)');
-  haze.addColorStop(0.75, hexA(accent, Math.abs(sunAlt) < 10 ? 0.18 : 0.08));
+  haze.addColorStop(0.75, hexA(pathColor, Math.abs(sunAlt) < 10 ? 0.18 : 0.08));
   haze.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = haze;
   ctx.fillRect(0, horizonY - H * 0.08, W, H * 0.10);
@@ -781,7 +902,7 @@ function drawScene(W, H, palette, today, nowMin, pos, opts) {
     ctx.rect(0, 0, arcRevealX, H);
     ctx.clip();
 
-    ctx.strokeStyle = hexA(accent, 0.55);
+    ctx.strokeStyle = hexA(pathColor, 0.55);
     ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -794,7 +915,7 @@ function drawScene(W, H, palette, today, nowMin, pos, opts) {
 
     for (const m of [sunriseMin, sunsetMin]) {
       const pt = hybridArcPoint(m, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
-      ctx.strokeStyle = hexA(accent, 0.7);
+      ctx.strokeStyle = hexA(pathColor, 0.7);
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(pt.x, horizonY - 5); ctx.lineTo(pt.x, horizonY + 5); ctx.stroke();
@@ -813,7 +934,7 @@ function drawScene(W, H, palette, today, nowMin, pos, opts) {
     const sunPt = hybridArcPoint(sunM, W, horizonY, peakH, sunriseMin, sunsetMin, solarNoonMin);
     const aboveHorizon = sunPt.alt >= 0;
     const radius = aboveHorizon ? 16 : 10;
-    ctx.fillStyle = aboveHorizon ? accent : hexA(accent, 0.55);
+    ctx.fillStyle = aboveHorizon ? sunColor : hexA(sunColor, 0.55);
     ctx.beginPath(); ctx.arc(sunPt.x, sunPt.y, radius, 0, Math.PI * 2); ctx.fill();
     if (!aboveHorizon) {
       ctx.strokeStyle = hexA('#ffffff', 0.35);
@@ -838,7 +959,7 @@ function drawScene(W, H, palette, today, nowMin, pos, opts) {
 }
 
 // ── Apply palette to UI ───────────────────────────────────────────────
-function applyPalette(palette) {
+function applyPalette(palette, sid) {
   const p = palette || {};
   const bgDark = isHexDark(p.bg || '#070710');
   const fg     = bgDark ? '#f6efe0' : (p.ink || '#15140e');
@@ -846,16 +967,17 @@ function applyPalette(palette) {
   const ruleC  = bgDark ? 'rgba(246,239,224,0.18)' : 'rgba(21,20,14,0.18)';
   const accent = p.accent || '#5b6f9c';
 
-  // Per-group font-colour overrides from the Tweaks panel, scoped to the
-  // current time-of-day phase (scenePhase). Each group falls back to its
-  // scene-derived colour ('auto'). Three sensible groupings:
+  // Per-group colour overrides from the Tweaks panel, scoped to the active
+  // scene (sid — one of the 12). Each group falls back to its scene-derived
+  // colour ('auto'). Three text groupings (sun + path are handled on canvas):
   //   heroC  — the big daylight figure (the hero numerals + their units)
   //   dataC  — the clock and every numeric readout / delta
   //   labelC — labels, dates, phase and the location caption
+  sid = sid || sceneId;
   const tw = window.__sunTweaks || {};
-  const pc = (tw.colors && tw.colors[scenePhase]) || {};
+  const pc = (tw.colors && tw.colors[sid]) || {};
   const ov = (v, fallback) => (v && v !== 'auto') ? v : fallback;
-  const heroC  = ov(pc.hero,  fg);
+  const heroC  = ov(pc.figure, fg);
   const dataC  = ov(pc.data,  accent);
   const labelC = ov(pc.label, fgDim);
   const unitC  = `color-mix(in srgb, ${heroC} 58%, transparent)`;
@@ -901,61 +1023,151 @@ function applyPalette(palette) {
   if (themeMeta) themeMeta.setAttribute('content', skyTop);
 }
 
-// ── Tweaks bridge ─────────────────────────────────────────────────────
-// Populated by the React Tweaks panel (app-tweaks.jsx). Kept on window so
-// the panel (a separate classic/Babel script) and this script share one
-// source of truth without relying on cross-script lexical bindings.
-//   time   — 'live' or a number of hours (0–24) to freeze the scene at
-//   colors — per-phase font-colour overrides, keyed by time-of-day bucket
-//            (dawn/day/dusk/night). Each holds { hero, data, label }, every
-//            value either 'auto' (scene-derived) or a hex string. This lets a
-//            different colour be chosen for, say, dawn vs day.
-function __emptyPhaseColors() {
-  return { hero: 'auto', data: 'auto', label: 'auto', sun: 'auto' };
+// ── Tweaks bridge / 12-scene colour model ─────────────────────────────
+// Populated by the React Tweaks panel (app-tweaks.jsx). Kept on window so the
+// panel (a separate Babel script) and this script share one source of truth.
+//   time   — 'live', or a number of hours (0–24) to freeze the scene at.
+//   colors — per-SCENE colour overrides, keyed by one of the 12 scene ids
+//            below. Each holds { figure, data, label, sun, path }; every value
+//            is either 'auto' (scene-derived) or a hex string.
+// The day is divided into twelve scenes: four "peak" scenes anchored on solar
+// events (sunrise / solar noon / sunset / solar midnight) and eight sub-scenes
+// that split each gap between consecutive peaks into even thirds. Live mode
+// SNAPS to whichever scene anchor the current time is nearest to — the 1.2s CSS
+// colour transitions (and the canvas tween below) smooth the hand-off.
+function __autoScene() {
+  return { figure: 'auto', data: 'auto', label: 'auto', sun: 'auto', path: 'auto' };
 }
+const SCENE_IDS = [
+  'solarMidnight', 'postMidnight', 'preDawn', 'peakDawn', 'postDawn', 'morning',
+  'solarNoon', 'afternoon', 'preDusk', 'peakDusk', 'postDusk', 'preMidnight'
+];
+const SCENE_NAMES = {
+  preDawn: 'Pre-dawn', peakDawn: 'Sunrise', postDawn: 'Post-dawn',
+  morning: 'Morning', solarNoon: 'Solar noon', afternoon: 'Afternoon',
+  preDusk: 'Pre-dusk', peakDusk: 'Sunset', postDusk: 'Post-dusk',
+  preMidnight: 'Pre-midnight', solarMidnight: 'Solar midnight', postMidnight: 'Post-midnight'
+};
+window.__sceneNames = SCENE_NAMES;
+window.__sceneIds = SCENE_IDS;
 
-// Per-phase override for the sun glyph + 24h path + horizon haze, which all
-// draw from palette.accent. Returns a palette clone with accent swapped when
-// the active phase has a sun colour set; otherwise the palette untouched. Kept
-// separate from applyPalette so the canvas accent can diverge from the text
-// 'data' default colour (which still follows the scene-derived accent).
-function withSunOverride(palette, phase) {
-  const tw = window.__sunTweaks || {};
-  const pc = (tw.colors && tw.colors[phase]) || {};
-  if (pc.sun && pc.sun !== 'auto') return { ...palette, accent: pc.sun };
-  return palette;
-}
-window.__sunTweaks = window.__sunTweaks || {
+// PRODUCTION BUILD — the colour scheme below was authored in the Tweaks panel
+// and baked in as the locked default. The panel, its persistence, and the
+// React/Babel runtime have been removed; the tweakable version is preserved as
+// customisable_with_tweaks.html. Each scene merges over __autoScene(), so any
+// channel left 'auto' falls back to its scene-derived colour.
+window.__sunTweaks = {
   time: 'live',
-  colors: {
-    dawn:  { ...__emptyPhaseColors(), data: '#c98a3a' },
-    day:   { ...__emptyPhaseColors(), data: '#5b6f9c', sun: '#ffb43a' },
-    dusk:  { ...__emptyPhaseColors(), data: '#c98a3a' },
-    night: __emptyPhaseColors(),
-  },
+  colors: (function () {
+    const baked = {
+      solarMidnight: { figure: '#b0b7d9', data: '#9278af' },
+      postMidnight:  { figure: '#cbbef5', data: '#a37db3' },
+      preDawn:       { figure: '#f5bee3', data: '#bb709d' },
+      peakDawn:      { figure: '#f5d1be', data: '#f69f4e' },
+      postDawn:      { figure: '#5f3304', data: '#644e38', sun: '#f2af1c' },
+      morning:       { figure: '#040935', data: '#525566', sun: '#ffc648' },
+      solarNoon:     { data: '#3d4a5e', sun: '#f7c953' },
+      afternoon:     { figure: '#14183d', data: '#4c5a6c', sun: '#ffb43a' },
+      preDusk:       { figure: '#a14518', data: '#8a553d', sun: '#f2711c' },
+      peakDusk:      { figure: '#f8d3c1', data: '#c98a3a', sun: '#f21c67' },
+      postDusk:      { figure: '#f8c1d2', data: '#be6893', sun: '#e16985' },
+      preMidnight:   { figure: '#f9d1f8', data: '#a268a8', sun: '#c87cbd' },
+    };
+    const c = {};
+    for (const id of SCENE_IDS) c[id] = { ...__autoScene(), ...(baked[id] || {}) };
+    return c;
+  })()
 };
 
-// Which broad time-of-day the scene is in right now. Drives which set of
-// per-phase colour overrides applyPalette uses, and is broadcast to the Tweaks
-// panel (via a 'scenephase' event) so its swatches edit the active phase.
-let scenePhase = 'night';
-window.__scenePhase = scenePhase;
-// Day begins when the sun is well up (>=18° altitude) rather than just barely
-// risen. At Aberdeen (57°N) that lands the morning dawn->day handoff around
-// 07:00 in early summer; being altitude-based it drifts later through the year,
-// which is correct (there is no 07:00 "day" in a Scottish midwinter). Symmetric,
-// so the evening day->dusk handoff also happens while the sun is still 18° up.
-const DAY_ALT = 18;
-function phaseBucket(alt, afterNoon) {
-  if (alt >= DAY_ALT) return 'day';
-  if (alt < -6)       return 'night';
-  return afterNoon ? 'dusk' : 'dawn';
+// Scene anchor times (minutes-of-day), recomputed whenever the almanac changes.
+let sceneAnchors = {};
+window.__sceneAnchors = sceneAnchors;
+function computeSceneAnchors(t) {
+  const noon = (t && t.solarNoon != null) ? t.solarNoon : 720;
+  const mid  = (noon + 720) % 1440;                       // solar midnight
+  const rise = (t && t.sunrise != null) ? t.sunrise : (t && t.civilDawn != null ? t.civilDawn : noon - 360);
+  const set  = (t && t.sunset  != null) ? t.sunset  : (t && t.civilDusk != null ? t.civilDusk : noon + 360);
+  const dRise = ((rise - mid) % 1440 + 1440) % 1440;      // offsets from solar midnight
+  const dSet  = ((set  - mid) % 1440 + 1440) % 1440;
+  const clk = off => ((mid + off) % 1440 + 1440) % 1440;
+  const a = {
+    solarMidnight: clk(0),
+    postMidnight:  clk(dRise / 3),
+    preDawn:       clk(dRise * 2 / 3),
+    peakDawn:      clk(dRise),
+    postDawn:      clk(dRise + (720 - dRise) / 3),
+    morning:       clk(dRise + (720 - dRise) * 2 / 3),
+    solarNoon:     clk(720),
+    afternoon:     clk(720 + (dSet - 720) / 3),
+    preDusk:       clk(720 + (dSet - 720) * 2 / 3),
+    peakDusk:      clk(dSet),
+    postDusk:      clk(dSet + (1440 - dSet) / 3),
+    preMidnight:   clk(dSet + (1440 - dSet) * 2 / 3),
+  };
+  sceneAnchors = a;
+  window.__sceneAnchors = a;
+  return a;
 }
-function setScenePhase(p) {
-  if (p === scenePhase) return;
-  scenePhase = p;
-  window.__scenePhase = p;
-  window.dispatchEvent(new CustomEvent('scenephase', { detail: p }));
+
+// Snap a clock-minute to the nearest scene by circular distance.
+function snapScene(min) {
+  let best = 'solarNoon', bestD = Infinity;
+  for (const id of SCENE_IDS) {
+    const anc = sceneAnchors[id]; if (anc == null) continue;
+    let d = Math.abs(min - anc); if (d > 720) d = 1440 - d;
+    if (d < bestD) { bestD = d; best = id; }
+  }
+  return best;
+}
+window.__snapScene = snapScene;
+
+// The scene currently displayed — drives which colour overrides apply, and which
+// scene the panel edits. Broadcast so the panel follows live / slider changes.
+let sceneId = 'solarMidnight';
+window.__sceneId = sceneId;
+function setSceneId(id) {
+  if (id === sceneId) return;
+  sceneId = id;
+  window.__sceneId = id;
+  window.dispatchEvent(new CustomEvent('scenechange', { detail: id }));
+}
+
+// Canvas colour smoothing: the sun + 24h path ease toward the active scene's
+// colours over 1.2s (matched to the CSS text transitions) so the whole scene
+// moves together even though scene colours "snap" to discrete anchors.
+let dispPath = null, dispSun = null, tgtPath = null, tgtSun = null;
+let fromPath = null, fromSun = null, tweenStart = 0, canvasTweening = false;
+const CANVAS_TWEEN_MS = 1200;
+function sceneCanvasColors(id, pal) {
+  const pc = (window.__sunTweaks.colors && window.__sunTweaks.colors[id]) || {};
+  const acc = pal.accent || '#5b6f9c';
+  const ov = v => (v && v !== 'auto') ? v : acc;
+  // Sun glyph is the source of truth: the 24h path inherits the sun colour.
+  return { path: ov(pc.sun), sun: ov(pc.sun) };
+}
+function setCanvasTargets(path, sun) {
+  if (dispPath == null) { dispPath = path; dispSun = sun; tgtPath = path; tgtSun = sun; return; }
+  if (path === tgtPath && sun === tgtSun) return;
+  fromPath = dispPath; fromSun = dispSun; tgtPath = path; tgtSun = sun;
+  tweenStart = performance.now();
+  if (!canvasTweening) { canvasTweening = true; requestAnimationFrame(canvasTweenFrame); }
+}
+function canvasTweenFrame(now) {
+  const k = Math.min(1, (now - tweenStart) / CANVAS_TWEEN_MS);
+  const e = easeStd(k);
+  dispPath = lerpHex(fromPath, tgtPath, e);
+  dispSun  = lerpHex(fromSun,  tgtSun,  e);
+  drawCanvasLive();
+  if (k < 1) requestAnimationFrame(canvasTweenFrame);
+  else canvasTweening = false;
+}
+function drawCanvasLive() {
+  if (lat == null || revealing) return;
+  const now = effectiveNow();
+  const p2 = altitudeAt(now, lat, lon);
+  const pal = paletteForAltitude(p2.alt);
+  const nowMin = currentMinute(now);
+  drawScene(window.innerWidth, window.innerHeight, { ...pal, path: dispPath, sun: dispSun }, today, nowMin, p2);
 }
 
 // Real clock, unless the Tweaks panel pins the scene to a fixed time of day.
@@ -1039,6 +1251,7 @@ function recompute(now) {
   today     = dailyAlmanac(now, lat, lon);
   const yest = new Date(now.getTime() - 86400000);
   yesterday = dailyAlmanac(yest, lat, lon);
+  computeSceneAnchors(today);
 }
 
 function updateUI(now) {
@@ -1046,12 +1259,14 @@ function updateUI(now) {
 
   pos     = altitudeAt(now, lat, lon);
   palette = paletteForAltitude(pos.alt);
+  window.__paletteAccent = palette.accent;
 
   const nowMin = currentMinute(now);
-  const noonMin = (today && today.solarNoon != null) ? today.solarNoon : 720;
-  setScenePhase(phaseBucket(pos.alt, nowMin > noonMin));
-  drawScene(window.innerWidth, window.innerHeight, withSunOverride(palette, scenePhase), today, nowMin, pos);
-  applyPalette(palette);
+  setSceneId(snapScene(nowMin));
+  const cc = sceneCanvasColors(sceneId, palette);
+  setCanvasTargets(cc.path, cc.sun);
+  drawScene(window.innerWidth, window.innerHeight, { ...palette, path: dispPath, sun: dispSun }, today, nowMin, pos);
+  applyPalette(palette, sceneId);
 
   updateReadouts(now, nowMin);
 }
@@ -1135,10 +1350,9 @@ function startReveal(now) {
   palette = target;
   const realAlt = pos.alt;
 
-  updateReadouts(now, currentMinute(now)); // populates today + all stat values
-  const noonMin = (today && today.solarNoon != null) ? today.solarNoon : 720;
-  setScenePhase(phaseBucket(realAlt, currentMinute(now) > noonMin));
-  applyPalette(target);                    // CSS fades chrome + text night -> located
+  updateReadouts(now, currentMinute(now)); // populates today + stat values + anchors
+  setSceneId(snapScene(currentMinute(now)));
+  applyPalette(target, sceneId);           // CSS fades chrome + text night -> located
   revealData();                            // fades the stat blocks in
 
   // One clock drives both animations together:
@@ -1164,6 +1378,9 @@ function startReveal(now) {
     const e = easeStd(Math.min(1, elapsed / SETTLE_MS));
     const k = Math.min(1, elapsed / REVEAL_MS);
     const pal = lerpPalette(NIGHT, target, e);
+    const pcR = window.__sunTweaks.colors[sceneId] || {};
+    const sunC  = (pcR.sun  && pcR.sun  !== 'auto') ? pcR.sun  : pal.accent;
+    const pathC = sunC;   // path inherits the sun glyph colour
     const ap = { alt: -90 + (realAlt + 90) * e };
     const nowMin = currentMinute(new Date());
     const homeFrac = nowMin / 1440;          // sun's true x as a fraction of W
@@ -1171,11 +1388,14 @@ function startReveal(now) {
     const tSun = Math.min(0.95, homeFrac + 0.3);
     const rx = W * k;                        // reveal edge
     const sunX = Math.min(rx, nowX * easeOutCubic(Math.min(1, k / tSun)));
-    drawScene(W, H, withSunOverride(pal, scenePhase), today, nowMin, ap, { arcRevealX: rx, showSun: true, sunX });
+    drawScene(W, H, { ...pal, path: pathC, sun: sunC }, today, nowMin, ap, { arcRevealX: rx, showSun: true, sunX });
     if (elapsed < Math.max(SETTLE_MS, REVEAL_MS)) {
       requestAnimationFrame(frame);
     } else {
       revealing = false;
+      const fin = window.__sunTweaks.colors[sceneId] || {};
+      dispSun  = tgtSun  = (fin.sun  && fin.sun  !== 'auto') ? fin.sun  : target.accent;
+      dispPath = tgtPath = dispSun;   // path inherits the sun glyph colour
       updateUI(new Date());
     }
   }
@@ -1189,8 +1409,8 @@ function tick() {
     // Loading hold: night background only — no curve, no sun — so it reads as a
     // deliberate blank canvas rather than a frozen, half-rendered scene.
     drawScene(window.innerWidth, window.innerHeight, NIGHT, DEFAULT_ALM, currentMinute(now), null, { arcRevealX: 0, showSun: false });
-    setScenePhase('night');
-    applyPalette(NIGHT);
+    setSceneId('solarMidnight');
+    applyPalette(NIGHT, 'solarMidnight');
     setClockText(now);
     setDateText(now);
     return;
@@ -1207,34 +1427,67 @@ function tick() {
   updateUI(now);
 }
 
-// ── Geolocation ───────────────────────────────────────────────────────
-function useFallbackLocation() {
-  lat = 37.77; lon = -122.42;
-  document.getElementById('location-notice').textContent = 'Location unavailable — showing San Francisco';
+// ── Geolocation (gated behind the permission dialog) ──────────────────
+// The Royal Observatory, Greenwich — longitude zero, the home of GMT, and
+// the fallback when the user declines or location can't be read.
+const GREENWICH = { lat: 51.4779, lon: -0.0015 };
+
+function locLabel(la, lo) {
+  const latS = `${Math.abs(la).toFixed(2)}°${la >= 0 ? 'N' : 'S'}`;
+  const lonS = `${Math.abs(lo).toFixed(2)}°${lo >= 0 ? 'E' : 'W'}`;
+  return `${latS}  ${lonS}`;
+}
+function applyLocation(la, lo, noticeText) {
+  lat = la; lon = lo;
+  document.getElementById('location-notice').textContent = noticeText;
   lastDateStr = null;
   tick();
 }
-
-// Guard against the Geolocation API being absent (insecure context / old
-// browser): without this, getCurrentPosition would throw and abort the rest
-// of the script (clock, resize handler, interval), leaving a frozen page.
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(
-    p => {
-      lat = p.coords.latitude;
-      lon = p.coords.longitude;
-      const latS = `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}`;
-      const lonS = `${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}`;
-      document.getElementById('location-notice').textContent = `${latS}  ${lonS}`;
-      lastDateStr = null;
-      tick();
-    },
-    useFallbackLocation,
-    { enableHighAccuracy: false, timeout: 10000 }
+function useGreenwich(reason) {
+  applyLocation(
+    GREENWICH.lat, GREENWICH.lon,
+    reason === 'deny' ? 'Greenwich, London · default location'
+                      : 'Location unavailable · using Greenwich'
   );
-} else {
-  useFallbackLocation();
 }
+// Called only after the user opts in through the dialog, preserving the
+// click as a user gesture so the browser's own permission prompt appears.
+function requestLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      p => applyLocation(p.coords.latitude, p.coords.longitude,
+                         locLabel(p.coords.latitude, p.coords.longitude)),
+      () => useGreenwich('error'),
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  } else {
+    useGreenwich('error');
+  }
+}
+
+// ── Permission dialog gate ────────────────────────────────────────────
+const locGate = document.getElementById('loc-gate');
+let gateDismissed = false;
+
+function showGate() {
+  locGate.hidden = false;
+  // Double-rAF so the entrance transition runs from the hidden state.
+  requestAnimationFrame(() => requestAnimationFrame(() => locGate.classList.add('lg-shown')));
+}
+function dismissGate(then) {
+  if (gateDismissed) return;
+  gateDismissed = true;
+  locGate.classList.add('lg-out');
+  setTimeout(() => {
+    locGate.hidden = true;
+    if (then) then();
+  }, 460);
+}
+
+locGate.querySelectorAll('.lg-allow').forEach(b =>
+  b.addEventListener('click', () => { requestLocation(); dismissGate(); }));
+locGate.querySelectorAll('.lg-decline').forEach(b =>
+  b.addEventListener('click', () => dismissGate(() => useGreenwich('deny'))));
 
 // Let the Tweaks panel force an immediate redraw when a tweak changes.
 window.__sunTick = tick;
@@ -1242,21 +1495,10 @@ window.__sunTick = tick;
 window.addEventListener('resize', tick);
 setInterval(tick, 1000);
 tick();
+
+// Paint the holding scene first, then present the permission dialog over it.
+showGate();
 </script>
 
-<!-- ── Tweaks panel removed for production ──────────────────────────────
-   This is the standalone deploy build: the colour scheme is baked into the
-   window.__sunTweaks default near the top of the scene script (dawn/dusk data
-   = warm gold, day data = dusk blue, day sun & path = amber), and the Tweaks
-   panel + React/Babel are intentionally omitted so this file is fully
-   self-contained with no external dependencies.
-
-   To re-enable live tweaking, restore the panel scaffold below and the colour
-   defaults will become its starting point again:
-     <div id="tweaks-root"></div>
-     <script src="…react…"></script>  (react, react-dom, babel)
-     <script type="text/babel" src="tweaks-panel.jsx"></script>
-     <script type="text/babel" src="app-tweaks.jsx"></script>
-   The panel-wired version is preserved as index-tweakable.html. -->
 </body>
 </html>
