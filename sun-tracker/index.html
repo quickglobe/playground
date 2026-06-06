@@ -332,7 +332,10 @@ body {
   text-transform: uppercase;
   opacity: 0.4;
   transition: color 1.2s ease, opacity 0.8s ease;
-  pointer-events: none;
+  pointer-events: auto;
+}
+@media (hover: hover) {
+  #location-notice.is-resettable { cursor: pointer; }
 }
 
 /* ── Data reveal ─────────────────────────────────────── */
@@ -459,7 +462,18 @@ body {
 .lg-card .dlg-eyebrow { margin-bottom: 11px; }
 .lg-card .dlg-title { margin-bottom: 16px; }
 .lg-card .dlg-body { text-align: left; }
-.lg-actions { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
+.lg-remember-row {
+  display: flex; align-items: center; gap: 11px;
+  margin-top: 20px; padding: 4px 0; cursor: pointer;
+  font-size: 13.5px; line-height: 1.4; text-align: left;
+  color: rgba(246,239,224,0.62);
+  -webkit-tap-highlight-color: transparent;
+}
+.lg-remember-row input {
+  width: 18px; height: 18px; flex: none; margin: 0;
+  accent-color: #5a6da0; cursor: pointer;
+}
+.lg-actions { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
 
 /* Desktop / landscape: widen toward a squarer card, with the two
    actions sitting side by side so the block isn't tall and narrow. */
@@ -589,7 +603,11 @@ body {
         <div class="dlg-eyebrow">Location access</div>
         <div class="dlg-title" id="lg-title">Find your sun</div>
         <p class="dlg-body">Sun&nbsp;tracker calculates the sun's exact position in the sky for where you are right now, giving you accurate sunrise, sunset, daylight hours, and position information.</p>
-        <p class="dlg-body">Your location is only used for this calculation. <em>It never leaves your device, it is never stored, and no server ever sees it.</em> If you decline, the app will use Greenwich, London for the calculations instead.</p>
+        <p class="dlg-body">Your location is only used for this calculation. <em>It never leaves your device and no server ever sees it.</em> If you ask us to remember your choice, only that preference is saved on this device &mdash; your location is still fetched fresh each visit, never stored. If you decline, the app uses Greenwich, London instead.</p>
+        <label class="lg-remember-row">
+          <input type="checkbox" id="lg-remember">
+          <span>Remember my choice on this device</span>
+        </label>
         <div class="lg-actions">
           <button class="btn btn-primary lg-allow">Use my location</button>
           <button class="btn btn-ghost lg-decline">Use Greenwich instead</button>
@@ -1432,6 +1450,19 @@ function tick() {
 // the fallback when the user declines or location can't be read.
 const GREENWICH = { lat: 51.4779, lon: -0.0015 };
 
+// Option B persistence: we remember only the user's *preference* (a small flag),
+// never the coordinates. The location itself is still fetched fresh every visit.
+const CONSENT_KEY = 'sun.locationConsent';   // 'granted' | 'greenwich' | null
+function readConsent() {
+  try { return localStorage.getItem(CONSENT_KEY); } catch (e) { return null; }
+}
+function writeConsent(v) {
+  try { localStorage.setItem(CONSENT_KEY, v); } catch (e) {}
+}
+function clearConsent() {
+  try { localStorage.removeItem(CONSENT_KEY); } catch (e) {}
+}
+
 function locLabel(la, lo) {
   const latS = `${Math.abs(la).toFixed(2)}°${la >= 0 ? 'N' : 'S'}`;
   const lonS = `${Math.abs(lo).toFixed(2)}°${lo >= 0 ? 'E' : 'W'}`;
@@ -1439,7 +1470,10 @@ function locLabel(la, lo) {
 }
 function applyLocation(la, lo, noticeText) {
   lat = la; lon = lo;
-  document.getElementById('location-notice').textContent = noticeText;
+  const notice = document.getElementById('location-notice');
+  const remembered = !!readConsent();
+  notice.textContent = noticeText + (remembered ? '  ·  tap to change' : '');
+  notice.classList.toggle('is-resettable', remembered);
   lastDateStr = null;
   tick();
 }
@@ -1467,9 +1501,13 @@ function requestLocation() {
 
 // ── Permission dialog gate ────────────────────────────────────────────
 const locGate = document.getElementById('loc-gate');
+const rememberBox = document.getElementById('lg-remember');
 let gateDismissed = false;
 
 function showGate() {
+  gateDismissed = false;
+  rememberBox.checked = false;
+  locGate.classList.remove('lg-out', 'lg-shown');
   locGate.hidden = false;
   // Double-rAF so the entrance transition runs from the hidden state.
   requestAnimationFrame(() => requestAnimationFrame(() => locGate.classList.add('lg-shown')));
@@ -1485,9 +1523,44 @@ function dismissGate(then) {
 }
 
 locGate.querySelectorAll('.lg-allow').forEach(b =>
-  b.addEventListener('click', () => { requestLocation(); dismissGate(); }));
+  b.addEventListener('click', () => {
+    if (rememberBox.checked) writeConsent('granted');
+    requestLocation();
+    dismissGate();
+  }));
 locGate.querySelectorAll('.lg-decline').forEach(b =>
-  b.addEventListener('click', () => dismissGate(() => useGreenwich('deny'))));
+  b.addEventListener('click', () => {
+    if (rememberBox.checked) writeConsent('greenwich');
+    dismissGate(() => useGreenwich('deny'));
+  }));
+
+// Tapping the location notice clears a remembered choice and re-opens the gate.
+document.getElementById('location-notice').addEventListener('click', () => {
+  if (!readConsent()) return;
+  clearConsent();
+  document.getElementById('location-notice').classList.remove('is-resettable');
+  showGate();
+});
+
+// Honour a remembered choice, skipping the custom dialog. For a remembered
+// "granted" we re-check the live OS permission so a since-revoked grant re-asks
+// rather than silently failing; the location is always fetched fresh.
+function startLocationFlow() {
+  const consent = readConsent();
+  if (consent === 'greenwich') {
+    useGreenwich('deny');
+  } else if (consent === 'granted') {
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' })
+        .then(status => { status.state === 'denied' ? showGate() : requestLocation(); })
+        .catch(() => requestLocation());
+    } else {
+      requestLocation();
+    }
+  } else {
+    showGate();
+  }
+}
 
 // Let the Tweaks panel force an immediate redraw when a tweak changes.
 window.__sunTick = tick;
@@ -1496,8 +1569,9 @@ window.addEventListener('resize', tick);
 setInterval(tick, 1000);
 tick();
 
-// Paint the holding scene first, then present the permission dialog over it.
-showGate();
+// Paint the holding scene first, then either honour a remembered choice or
+// present the permission dialog over it.
+startLocationFlow();
 </script>
 
 </body>
