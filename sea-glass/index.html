@@ -12,12 +12,18 @@
 <meta name="theme-color" content="#ece4d4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap" rel="stylesheet">
 <style>
   :root {
     /* Live parameters (written by JS) */
     --frost: 18px; --sat: 140%; --tint: 0.32; --grain: 0.16; --rim: 0.6;
-    --shadow: 0.45;
+    --shadow: 0.45; --sb: 14px; --sy: 10px;
+    --system: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+    --ui-font: var(--system);
+    --display-font: 'Bricolage Grotesque', system-ui, sans-serif;
+    --display-wght: 800; --display-wdth: 100;
+    /* Wider display type is scaled down so it still fits its piece */
+    --wscale: calc(100 / max(100, var(--display-wdth)));
 
     /* Per-hue glass colours (--c-glass, --c-edge, --c-ink, --c-pb, --c-active,
        --c-shadow, --c-art1, --c-art2) are set on each piece by JS as gamut-mapped
@@ -60,7 +66,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: #ece4d4; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+    font-family: var(--system);
     color: var(--panel-ink); min-height: 100vh; -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
@@ -102,17 +108,22 @@
   .a-music { grid-area: music; } .a-slider { grid-area: slider; } .a-note { grid-area: note; }
   .a-dock { grid-area: dock; }
 
-  /* A piece is the unclipped wrapper: it holds the shadow and the glass as
+  /* A piece is the unclipped wrapper: it holds the shadows and the glass as
      siblings. Nothing on it may set filter/opacity/mask, or it would become a
      backdrop root and the glass would stop seeing the sea behind it. */
-  .piece { position: relative; min-width: 0; }
-  .sg-shadow {
-    position: absolute; inset: 0; pointer-events: none;
-    filter: blur(var(--sb, 14px)); transform: translateY(var(--sy, 10px));
-    opacity: var(--shadow);
+  .piece { position: relative; min-width: 0; --elev: 1; }
+  /* Two shadows, as Material's paper: a soft ambient one that barely moves,
+     and a sharper key shadow cast further the higher the piece sits. */
+  .sg-shadow { position: absolute; inset: 0; pointer-events: none; }
+  .sg-shadow > div { position: absolute; inset: 0; background: rgb(var(--c-shadow) / 0.8); }
+  .sg-shadow.amb {
+    filter: blur(calc(var(--sb) * (0.6 + 0.4 * var(--elev))));
+    transform: translateY(calc(var(--sy) * 0.4)); opacity: calc(var(--shadow) * 0.75);
   }
-  .sg-shadow > div { position: absolute; inset: 0; background: rgb(var(--c-shadow) / 0.75); }
-  @media (prefers-color-scheme: dark) { .sg-shadow > div { background: rgb(var(--c-shadow) / 0.9); } }
+  .sg-shadow.key {
+    filter: blur(calc(var(--sb) * 0.22 * var(--elev)));
+    transform: translateY(calc(var(--sy) * 0.4 * var(--elev))); opacity: calc(var(--shadow) * 0.5);
+  }
 
   .sg {
     position: relative; height: 100%; isolation: isolate;
@@ -143,34 +154,37 @@
   .sg-rim .rim-edge { stroke: rgb(var(--c-edge)); opacity: 0.75; }
   .sg-rim .rim-hi { stroke: url(#sg-hi); opacity: var(--rim); }
   .sg-rim .rim-lo { stroke: url(#sg-lo); opacity: calc(var(--rim) * 0.8); }
-  .sg-c { position: relative; z-index: 2; height: 100%; }
+  .sg-c { position: relative; z-index: 2; height: 100%; font-family: var(--ui-font); container-type: inline-size; }
+  /* Material's touch ripple, recast as light spreading through frosted glass */
+  .ripple { position: absolute; border-radius: 50%; pointer-events: none; z-index: 1;
+    background: radial-gradient(circle, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.18) 45%, rgb(255 255 255 / 0) 70%); }
 
   /* Inner pebbles: buttons, tracks, icons. Tinted shapes without their own blur. */
   .pb {
     border: 0; background: rgb(var(--c-pb) / var(--pa));
     color: inherit; display: grid; place-items: center; cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   }
   .pb[aria-pressed="true"] { background: rgb(var(--c-active) / 0.92); color: var(--on-active); }
   .pb svg { width: 46%; height: 46%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   @media (hover: hover) and (pointer: fine) {
-    .pb { transition: transform 0.18s cubic-bezier(.34,1.56,.64,1); }
-    button.pb:hover { transform: translateY(-2px); }
-    button.pb:active { transform: scale(0.95); }
+    button.pb { transition: filter 0.15s; }
+    button.pb:hover { filter: brightness(1.08); }
   }
   .pb:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
   .label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
-  .big { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; line-height: 0.95; }
+  .big { font-family: var(--display-font); font-weight: var(--display-wght);
+    font-variation-settings: "wdth" var(--display-wdth); letter-spacing: -0.03em; line-height: 0.95; white-space: nowrap; }
   .small { font-size: 13.5px; opacity: 0.78; line-height: 1.4; }
 
   /* clock */
   .a-clock .sg-c { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; min-height: 120px; }
-  .a-clock .big { font-size: clamp(54px, 13vw, 76px); font-variant-numeric: tabular-nums; }
+  .a-clock .big { font-size: calc(clamp(50px, 24cqi, 80px) * var(--wscale)); font-variant-numeric: tabular-nums; }
 
   /* tide */
   .a-tide .sg-c { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
-  .a-tide .big { font-size: clamp(34px, 8vw, 46px); margin-top: 4px; }
+  .a-tide .big { font-size: calc(min(46px, 27cqi) * var(--wscale)); margin-top: 4px; }
 
   /* toggles */
   .toggles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 8px; }
@@ -180,37 +194,48 @@
   .a-toggles .sg { padding: 18px 16px; }
   @media (min-width: 640px) {
     .toggles { grid-template-columns: repeat(4, 1fr); }
-    .a-toggles .sg { padding: 22px 20px; }
   }
 
   /* music */
   .a-music .sg-c { display: flex; flex-direction: column; gap: 16px; }
   .track { display: flex; gap: 14px; align-items: center; }
-  .art { width: 72px; height: 72px; flex-shrink: 0;
+  .art { width: 72px; height: 72px; flex-shrink: 0; cursor: default;
     background: radial-gradient(circle at 30% 30%, rgb(var(--c-art1)), rgb(var(--c-art2)) 70%); }
-  .track h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
-  .progress { height: 10px; position: relative; cursor: default; }
-  .progress .fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(var(--c-active) / 0.9); }
+  .track h3 { font-family: var(--display-font); font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  /* M3 Expressive wavy progress: the played part ripples while music plays */
+  .progress { height: 16px; display: block; }
+  .progress svg { display: block; overflow: visible; }
+  .progress .p-act { fill: none; stroke: rgb(var(--c-active)); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+  .progress .p-inact { stroke: currentColor; stroke-opacity: 0.2; stroke-width: 4; stroke-linecap: round; }
+  .progress .p-stop { fill: rgb(var(--c-active)); }
   .times { display: flex; justify-content: space-between; font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.7; margin-top: -8px; }
   .controls { display: flex; justify-content: center; align-items: center; gap: 14px; }
   .controls .pb { width: 52px; height: 52px; }
   .controls .play { width: 66px; height: 66px; }
   .controls svg { fill: currentColor; stroke: none; }
 
-  /* slider */
-  .a-slider .sg-c { display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+  /* M3 Expressive slider: thick track split by a narrow handle, stop dot at the end */
+  .a-slider .sg-c { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
   .bright-row { display: flex; justify-content: space-between; align-items: baseline; }
   .bright-row output { font-variant-numeric: tabular-nums; min-width: 4ch; text-align: right; font-weight: 600; }
-  .bright { position: relative; height: 44px; }
-  .bright .pb { position: absolute; inset: 0; cursor: pointer; }
-  .bright .fill { position: absolute; left: 0; top: 0; bottom: 0; pointer-events: none;
-    background: rgb(var(--c-active) / 0.9); }
+  .bright { position: relative; height: 52px; }
+  .bright .b-act, .bright .b-inact { position: absolute; top: 4px; height: 44px; pointer-events: none; }
+  .bright .b-act { left: 0; background: rgb(var(--c-active) / 0.92); }
+  .bright .b-handle { position: absolute; top: 0; width: 4px; height: 52px; margin-left: -2px; border-radius: 2px;
+    background: rgb(var(--c-ink)); pointer-events: none; transition: width 0.15s, margin-left 0.15s; }
+  .bright .b-stop { position: absolute; top: 24px; right: 12px; width: 4px; height: 4px; border-radius: 2px; background: rgb(var(--c-active)); pointer-events: none; }
   .bright input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; margin: 0; }
+  .bright input:active ~ .b-handle { width: 2px; margin-left: -1px; }
 
   /* notification */
   .a-note .sg { padding: 18px 20px; }
   .a-note .sg-c { display: flex; gap: 14px; align-items: flex-start; }
-  .a-note .icon { width: 44px; height: 44px; flex-shrink: 0; font-weight: 800; font-size: 18px; cursor: default; }
+  .loader { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; }
+  .loader .pb { width: 38px; height: 38px; background: rgb(var(--c-active) / 0.92); cursor: default; }
+  @media (prefers-reduced-motion: no-preference) {
+    .loader { animation: spin 2.4s linear infinite; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .note-top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
   .note-top strong { font-size: 15px; }
 
@@ -218,15 +243,15 @@
   .a-dock .sg { padding: 16px 18px; }
   .dock { display: flex; justify-content: space-around; gap: 8px; }
   .app { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
-  .app .pb { width: clamp(50px, 14vw, 64px); aspect-ratio: 1; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px;
-    background: rgb(var(--c-app) / 0.8); color: var(--on-active); }
+  .app .pb { width: clamp(50px, 14vw, 64px); aspect-ratio: 1; font-family: var(--display-font); font-weight: 800; font-size: 22px;
+    background: rgb(var(--c-app) / 0.85); color: var(--on-active); }
   .app span { font-size: 11.5px; font-weight: 600; opacity: 0.8; }
 
   /* ---------- Panel ---------- */
   .panel {
     background: var(--panel-bg); color: var(--panel-ink);
     -webkit-backdrop-filter: blur(26px) saturate(150%); backdrop-filter: blur(26px) saturate(150%);
-    border-radius: 26px; box-shadow: inset 0 0 0 1px var(--panel-line), 0 10px 40px rgb(0 25 36 / 0.18);
+    border-radius: 26px; box-shadow: inset 0 0 0 1px var(--panel-line), 0 10px 40px rgb(2 24 36 / 0.18);
     width: 100%; max-width: 760px; margin: 0 auto;
   }
   .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 14px 22px; }
@@ -236,10 +261,17 @@
   .intro { font-size: 14px; color: var(--panel-muted); line-height: 1.5; margin-bottom: 6px; }
   .group { border-top: 1px solid var(--panel-line); padding-top: 14px; margin-top: 16px; }
   .group h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--panel-muted); margin-bottom: 8px; }
+  .sub { font-size: 14.5px; font-weight: 500; padding-top: 4px; }
   .ctl { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; padding: 5px 0; }
   .ctl label { font-size: 14.5px; font-weight: 500; }
   .ctl output { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--panel-muted); min-width: 5ch; text-align: right; }
   .ctl input[type=range] { grid-column: 1 / -1; }
+  .ctl.hidden { display: none; }
+  .ctl.hue input[type=range]::-webkit-slider-runnable-track {
+    background: linear-gradient(90deg, #e86b80, #d98a3d, #a7a33a, #45b07c, #18aeb0, #4a8de0, #8a72d8, #c766b0, #e86b80); }
+  .ctl.hue input[type=range]::-moz-range-track {
+    background: linear-gradient(90deg, #e86b80, #d98a3d, #a7a33a, #45b07c, #18aeb0, #4a8de0, #8a72d8, #c766b0, #e86b80); }
+  .ctl.hue input[type=range]::-moz-range-progress { background: transparent; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
   .chip, .btn {
     border: 1px solid var(--panel-line); background: transparent; border-radius: 999px;
@@ -248,6 +280,8 @@
   }
   .chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: transparent; }
   .chip .sw { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2); }
+  .presets { margin-top: 10px; }
+  .presets .chip { min-height: 40px; padding: 0 16px; }
   .btn { min-height: 40px; padding: 0 16px; }
   .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
   @media (hover: hover) {
@@ -314,14 +348,14 @@
 
 <div class="layout">
   <main class="stage" id="stage">
-    <div class="piece a-clock" style="--h:180" data-seed="11">
+    <div class="piece a-clock" style="--h:180; --elev:1" data-role="primary" data-seed="11">
       <div class="sg"><div class="sg-c">
         <div class="label" id="date">Saturday 10 October</div>
         <div class="big" id="time">10:42</div>
       </div></div>
     </div>
 
-    <div class="piece a-tide" style="--h:250" data-seed="23">
+    <div class="piece a-tide" style="--h:250; --elev:1" data-role="secondary" data-seed="23">
       <div class="sg"><div class="sg-c">
         <div class="label">Tide</div>
         <div class="big">2.4 m</div>
@@ -330,69 +364,71 @@
       </div></div>
     </div>
 
-    <div class="piece a-toggles" style="--h:150" data-seed="37">
+    <div class="piece a-toggles" style="--h:150; --elev:2" data-role="primary" data-seed="37">
       <div class="sg"><div class="sg-c toggles">
-        <div class="toggle"><button class="pb" aria-pressed="true" aria-label="Wi-Fi" data-round="1">
+        <div class="toggle"><button class="pb" aria-pressed="true" aria-label="Wi-Fi" data-round="1" data-on="cookie9">
           <svg viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0"/><path d="M5.8 12.6a9 9 0 0 1 12.4 0"/><path d="M9.1 16.1a4.3 4.3 0 0 1 5.8 0"/><circle cx="12" cy="19.5" r="0.6"/></svg>
         </button><span>Wi-Fi</span></div>
-        <div class="toggle"><button class="pb" aria-pressed="true" aria-label="Bluetooth" data-round="1">
+        <div class="toggle"><button class="pb" aria-pressed="true" aria-label="Bluetooth" data-round="1" data-on="clover4">
           <svg viewBox="0 0 24 24"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg>
         </button><span>Bluetooth</span></div>
-        <div class="toggle"><button class="pb" aria-pressed="false" aria-label="Torch" data-round="1">
+        <div class="toggle"><button class="pb" aria-pressed="false" aria-label="Torch" data-round="1" data-on="sunny">
           <svg viewBox="0 0 24 24"><path d="M8 3h8v4l-2 3v11h-4V10L8 7z"/><path d="M12 13v2"/></svg>
         </button><span>Torch</span></div>
-        <div class="toggle"><button class="pb" aria-pressed="false" aria-label="Focus" data-round="1">
+        <div class="toggle"><button class="pb" aria-pressed="false" aria-label="Focus" data-round="1" data-on="flower">
           <svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
         </button><span>Focus</span></div>
       </div></div>
     </div>
 
-    <div class="piece a-music" style="--h:300" data-seed="41">
+    <div class="piece a-music" style="--h:300; --elev:2" data-role="tertiary" data-seed="41">
       <div class="sg"><div class="sg-c">
         <div class="label">Now playing</div>
         <div class="track">
-          <div class="art pb" data-round="0.7" style="cursor:default"></div>
+          <div class="art pb" data-round="0.7" data-shape="cookie12"></div>
           <div><h3>Low Tide</h3><div class="small">The Shingle Collective</div></div>
         </div>
-        <div class="progress pb" data-round="1" data-wobble="0.3"><div class="fill pb" data-round="1" data-wobble="0.3" id="prog-fill"></div></div>
+        <div class="progress" id="progress"><svg><path class="p-act"/><line class="p-inact"/><circle class="p-stop" r="2"/></svg></div>
         <div class="times"><span id="t-now">1:12</span><span>3:47</span></div>
         <div class="controls">
-          <button class="pb" aria-label="Previous track" data-round="1"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12l-10-6z"/></svg></button>
-          <button class="pb play" aria-label="Play" aria-pressed="false" data-round="1" id="play">
+          <button class="pb" aria-label="Previous track" data-round="1" data-shape="circle"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12l-10-6z"/></svg></button>
+          <button class="pb play" aria-label="Play" aria-pressed="false" data-round="1" data-on="square" id="play">
             <svg viewBox="0 0 24 24" id="play-icon"><path d="M7 4.5v15l13-7.5z"/></svg>
           </button>
-          <button class="pb" aria-label="Next track" data-round="1"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6v12l10-6z"/></svg></button>
+          <button class="pb" aria-label="Next track" data-round="1" data-shape="circle"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6v12l10-6z"/></svg></button>
         </div>
       </div></div>
     </div>
 
-    <div class="piece a-slider" style="--h:75" data-seed="53">
+    <div class="piece a-slider" style="--h:75; --elev:1" data-role="secondary" data-seed="53">
       <div class="sg"><div class="sg-c">
         <div class="bright-row"><span class="label">Daylight</span><output id="bright-out">100%</output></div>
-        <div class="bright">
-          <div class="pb" data-round="1" data-wobble="0.5"></div>
-          <div class="fill pb" data-round="1" data-wobble="0.5" id="bright-fill"></div>
+        <div class="bright" id="bright-wrap">
+          <div class="b-act pb" data-radii="1 0.22 0.22 1" data-wobble="0.4"></div>
+          <div class="b-inact pb" data-radii="0.22 1 1 0.22" data-wobble="0.4"></div>
+          <span class="b-stop"></span>
           <input type="range" id="bright" min="40" max="130" value="100" aria-label="Daylight on the sea backdrop">
+          <div class="b-handle"></div>
         </div>
       </div></div>
     </div>
 
-    <div class="piece a-note" style="--h:20" data-seed="67">
+    <div class="piece a-note" style="--h:20; --elev:3" data-role="tertiary" data-seed="67">
       <div class="sg"><div class="sg-c">
-        <div class="icon pb" data-round="0.8">B</div>
+        <div class="loader" aria-hidden="true"><div class="pb" data-loader></div></div>
         <div style="min-width:0">
           <div class="note-top"><strong>Beachcomber</strong><span class="small">now</span></div>
-          <div class="small">Three new finds logged at the north groyne: two seafoam, one rare cobalt.</div>
+          <div class="small">Syncing three new finds from the north groyne: two seafoam, one rare cobalt.</div>
         </div>
       </div></div>
     </div>
 
-    <div class="piece a-dock" style="--h:210" data-seed="79">
+    <div class="piece a-dock" style="--h:210; --elev:2" data-role="neutral" data-seed="79">
       <div class="sg"><div class="sg-c dock">
-        <div class="app"><button class="pb" data-h="200" data-round="0.75">T</button><span>Tides</span></div>
-        <div class="app"><button class="pb" data-h="150" data-round="0.75">S</button><span>Shore</span></div>
-        <div class="app"><button class="pb" data-h="60" data-round="0.75">N</button><span>Notes</span></div>
-        <div class="app"><button class="pb" data-h="280" data-round="0.75">C</button><span>Charts</span></div>
+        <div class="app"><button class="pb" data-h="200" data-round="0.75" data-shape="cookie9">T</button><span>Tides</span></div>
+        <div class="app"><button class="pb" data-h="150" data-round="0.75" data-shape="clover4">S</button><span>Shore</span></div>
+        <div class="app"><button class="pb" data-h="60" data-round="0.75" data-shape="cookie4">N</button><span>Notes</span></div>
+        <div class="app"><button class="pb" data-h="280" data-round="0.75" data-shape="sunny">C</button><span>Charts</span></div>
       </div></div>
     </div>
   </main>
@@ -403,7 +439,8 @@
       <button class="btn" id="toggle-panel" aria-expanded="true" aria-controls="panel-body">Hide</button>
     </div>
     <div class="panel-body" id="panel-body">
-      <p class="intro">Frosted, tumbled glass in place of liquid. Each panel is a pebble cut from the sea behind it; change the material and watch it respond.</p>
+      <p class="intro">Frosted, tumbled glass, with a few borrowings from Material: dynamic colour, expressive shapes, springs, ripples and paper elevation. The presets show each end of the range; every setting can then be tuned by hand.</p>
+      <div class="chips presets" id="presets" role="group" aria-label="Presets"></div>
       <div id="controls"></div>
       <div class="btn-row">
         <button class="btn" id="shuffle">Shuffle shapes</button>
@@ -418,17 +455,29 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
 
-  const DEFAULTS = {
-    glass: "mixed", frost: 18, tint: 0.32, sat: 140, grain: 0.16,
-    wobble: 0.45, round: 0.6,
-    rim: 0.6, edge: 3, shadow: 0.45,
-    palette: "coastal", pattern: "pebbles", drift: reduceMotion ? 0 : 0.35,
+  /* Presets set the material, shape, light, motion and type; they leave the
+     backdrop alone. */
+  const PRESETS = {
+    seaglass: { name: "Sea glass", v: { glass: "mixed", frost: 18, tint: 0.32, sat: 140, grain: 0.16,
+      wobble: 0.45, round: 0.6, buttons: "pebble", rim: 0.6, edge: 3, shadow: 0.45,
+      bounce: 0.35, feedback: "ripple", type: "grotesque", wght: 800, wdth: 100 } },
+    liquid: { name: "Liquid", v: { glass: "clear", frost: 4, tint: 0.08, sat: 190, grain: 0,
+      wobble: 0, round: 0.85, buttons: "pebble", rim: 1, edge: 1.5, shadow: 0.2,
+      bounce: 0.5, feedback: "none", type: "system", wght: 700, wdth: 100 } },
+    paper: { name: "Paper", v: { glass: "mixed", frost: 0, tint: 0.94, sat: 100, grain: 0.1,
+      wobble: 0, round: 0.14, buttons: "pebble", rim: 0, edge: 0, shadow: 0.8,
+      bounce: 0, feedback: "ripple", type: "system", wght: 500, wdth: 100 } },
+    expressive: { name: "Expressive", v: { glass: "dynamic", frost: 24, tint: 0.6, sat: 130, grain: 0.05,
+      wobble: 0.12, round: 0.7, buttons: "expressive", rim: 0.3, edge: 1.5, shadow: 0.45,
+      bounce: 0.6, feedback: "ripple", type: "flex", wght: 900, wdth: 125 } },
   };
+  const DEFAULTS = { ...PRESETS.seaglass.v, seed: 200, palette: "coastal", pattern: "pebbles", drift: reduceMotion ? 0 : 0.35 };
   const P = { ...DEFAULTS };
   let shuffle = 0;
 
   const GLASS = [
     { id: "mixed", name: "Mixed" },
+    { id: "dynamic", name: "Dynamic", sw: "conic-gradient(#e86b80, #d98a3d, #a7a33a, #45b07c, #18aeb0, #4a8de0, #8a72d8, #c766b0, #e86b80)" },
     { id: "seafoam", name: "Seafoam", h: 170, sw: "#86d7bb" },
     { id: "cobalt", name: "Cobalt", h: 258, sw: "#427fd8" },
     { id: "amber", name: "Amber", h: 70, sw: "#f3ae58" },
@@ -448,29 +497,66 @@
     mono: { name: "Shingle",
       light: { bg: "#e6e5e1", c: ["#2b2b2b", "#8a8a86", "#c9c9c4", "#ffffff", "#5c5c58", "#1f6f8b", "#a8a59c"] },
       dark:  { bg: "#111213", c: ["#e8e8e8", "#5c5c5c", "#2e2e2e", "#9a9a9a", "#444444", "#2f8fb0", "#777570"] } },
+    dynamic: { name: "Dynamic", sw: GLASS[1].sw },
   };
-  const PATTERNS = [ { id: "pebbles", name: "Pebbles" }, { id: "blobs", name: "Blobs" }, { id: "waves", name: "Waves" } ];
-
+  const CHIPS = {
+    glass:    { label: "Colour", opts: GLASS },
+    buttons:  { label: "Button shapes", opts: [{ id: "pebble", name: "Pebble" }, { id: "expressive", name: "Expressive" }] },
+    feedback: { label: "Press feedback", opts: [{ id: "ripple", name: "Ripple" }, { id: "none", name: "None" }] },
+    type:     { label: "Typeface", opts: [{ id: "grotesque", name: "Grotesque" }, { id: "system", name: "System" }, { id: "flex", name: "Flex" }] },
+    palette:  { label: "Palette", opts: Object.entries(PALETTES).map(([id, v]) => ({ id, name: v.name, sw: v.sw || v.light.c[1] })) },
+    pattern:  { label: "Pattern", opts: [{ id: "pebbles", name: "Pebbles" }, { id: "blobs", name: "Blobs" }, { id: "waves", name: "Waves" }] },
+  };
+  const pct = v => Math.round(v * 100) + "%";
   const SLIDERS = {
+    seed:   { label: "Seed hue", min: 0, max: 359, step: 1, fmt: v => v + "°", cls: "hue" },
     frost:  { label: "Frost", min: 0, max: 40, step: 1, fmt: v => v + " px" },
-    tint:   { label: "Tint", min: 0, max: 0.85, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+    tint:   { label: "Tint", min: 0, max: 0.96, step: 0.01, fmt: pct },
     sat:    { label: "Saturation", min: 50, max: 260, step: 5, fmt: v => v + "%" },
     grain:  { label: "Grain", min: 0, max: 0.5, step: 0.01, fmt: v => Math.round(v * 200) + "%" },
-    wobble: { label: "Wobble", min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
-    round:  { label: "Roundness", min: 0.05, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
-    rim:    { label: "Rim light", min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+    wobble: { label: "Wobble", min: 0, max: 1, step: 0.01, fmt: pct },
+    round:  { label: "Roundness", min: 0.05, max: 1, step: 0.01, fmt: pct },
+    rim:    { label: "Rim light", min: 0, max: 1, step: 0.01, fmt: pct },
     edge:   { label: "Edge depth", min: 0, max: 10, step: 0.5, fmt: v => v + " px" },
-    shadow: { label: "Shadow", min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
-    drift:  { label: "Drift", min: 0, max: 1, step: 0.01, fmt: v => v === 0 ? "Still" : Math.round(v * 100) + "%" },
+    shadow: { label: "Shadow", min: 0, max: 1, step: 0.01, fmt: pct },
+    bounce: { label: "Bounce", min: 0, max: 1, step: 0.01, fmt: pct },
+    wght:   { label: "Display weight", min: 300, max: 1000, step: 10, fmt: v => String(v) },
+    wdth:   { label: "Display width", min: 75, max: 151, step: 1, fmt: v => v + "%" },
+    drift:  { label: "Drift", min: 0, max: 1, step: 0.01, fmt: v => v === 0 ? "Still" : pct(v) },
   };
   const GROUPS = [
-    { name: "Glass", items: ["chips:glass", "frost", "tint", "sat", "grain"] },
-    { name: "Shape", items: ["wobble", "round"] },
+    { name: "Glass", items: ["chips:glass", "seed", "frost", "tint", "sat", "grain"] },
+    { name: "Shape", items: ["wobble", "round", "chips:buttons"] },
     { name: "Light", items: ["rim", "edge", "shadow"] },
+    { name: "Motion", items: ["bounce", "chips:feedback"] },
+    { name: "Type", items: ["chips:type", "wght", "wdth"] },
     { name: "Backdrop", items: ["chips:palette", "chips:pattern", "drift"] },
   ];
 
-  /* ---------- Pebble geometry ---------- */
+  /* ---------- Animation loop and springs ---------- */
+  const tickers = new Set();
+  let rafId = 0, lastT = 0;
+  function addTicker(fn) {
+    tickers.add(fn);
+    if (!rafId && !document.hidden) { lastT = 0; rafId = requestAnimationFrame(loop); }
+  }
+  function loop(now) {
+    const dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 1 / 60;
+    lastT = now;
+    for (const fn of [...tickers]) if (fn(dt) === false) tickers.delete(fn);
+    rafId = tickers.size && !document.hidden ? requestAnimationFrame(loop) : 0;
+  }
+  // Damped spring towards target. Bounce lowers the damping ratio from
+  // critically damped (no overshoot) to a lively wobble.
+  function springStep(s, target, dt, k = 170) {
+    if (reduceMotion) { s.x = target; s.v = 0; return true; }
+    const zeta = 1 - 0.88 * P.bounce, c = 2 * zeta * Math.sqrt(k);
+    const n = Math.ceil(dt / 0.006), h = dt / n;
+    for (let i = 0; i < n; i++) { s.v += (-k * (s.x - target) - c * s.v) * h; s.x += s.v * h; }
+    return Math.abs(s.x - target) < 0.0008 && Math.abs(s.v) < 0.002;
+  }
+
+  /* ---------- Geometry ---------- */
   function rng(seed) {
     let a = seed >>> 0;
     return () => {
@@ -480,12 +566,24 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
+  const f1 = v => Math.round(v * 10) / 10;
+  // Closed Catmull-Rom spline through the points, as cubic beziers
+  function smoothPath(pts) {
+    const N = pts.length;
+    let d = `M${f1(pts[0][0])} ${f1(pts[0][1])}`;
+    for (let i = 0; i < N; i++) {
+      const p0 = pts[(i - 1 + N) % N], p1 = pts[i], p2 = pts[(i + 1) % N], p3 = pts[(i + 2) % N];
+      d += `C${f1(p1[0] + (p2[0] - p0[0]) / 6)} ${f1(p1[1] + (p2[1] - p0[1]) / 6)} ${f1(p2[0] - (p3[0] - p1[0]) / 6)} ${f1(p2[1] - (p3[1] - p1[1]) / 6)} ${f1(p2[0])} ${f1(p2[1])}`;
+    }
+    return d + "Z";
+  }
 
   // A rounded rectangle with uneven corners, pushed in and out along its normal
-  // by a sum of low-frequency sines, then smoothed into cubic beziers. The shape
-  // is inset by the wobble amplitude so it never leaves the w x h box (the
-  // backdrop blur only covers the element's box).
-  function pebblePath(w, h, { round = 0.6, wobble = 0.4, seed = 1, pad = 1 } = {}) {
+  // by a sum of low-frequency sines, then smoothed. The shape is inset by the
+  // wobble amplitude so it never leaves the w x h box (the backdrop blur only
+  // covers the element's box). `radii` fixes the four corners (TL TR BR BL) as
+  // fractions of the half-height instead of varying them.
+  function pebblePath(w, h, { round = 0.6, wobble = 0.4, seed = 1, pad = 1, radii = null } = {}) {
     const R = rng(seed);
     const m = Math.min(w, h);
     const amp = Math.min(wobble * m * 0.06, 16);
@@ -494,7 +592,8 @@
     const iw = Math.max(1, x1 - x0), ih = Math.max(1, y1 - y0);
     const half = Math.min(iw, ih) / 2;
     const base = Math.max(1.5, round * half);
-    const r = [0, 1, 2, 3].map(() => Math.min(half, Math.max(1, base * (1 + wobble * 0.55 * (R() * 2 - 1)))));
+    const r = [0, 1, 2, 3].map(i => Math.min(half, Math.max(1,
+      radii ? radii[i] * half : base * (1 + wobble * 0.55 * (R() * 2 - 1)))));
 
     const segs = [];
     const line = (ax, ay, bx, by, nx, ny) => segs.push({ len: Math.hypot(bx - ax, by - ay),
@@ -527,27 +626,69 @@
       const d = amp * noise(i / N);
       pts.push([x + nx * d, y + ny * d]);
     }
-    const f = v => Math.round(v * 10) / 10;
-    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
-    for (let i = 0; i < N; i++) {
-      const p0 = pts[(i - 1 + N) % N], p1 = pts[i], p2 = pts[(i + 1) % N], p3 = pts[(i + 2) % N];
-      d += `C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+    return smoothPath(pts);
+  }
+
+  /* Expressive shapes, in the spirit of Material 3 Expressive's shape set.
+     Each is a radius function of angle, sampled at the same NP angles, so any
+     two can be morphed by interpolating their radii. */
+  const NP = 72;
+  const ANG = Array.from({ length: NP }, (_, i) => -Math.PI / 2 + 2 * Math.PI * i / NP);
+  // k lobes of depth d; p < 1 broadens the lobes and pinches the valleys (clover),
+  // p > 1 does the reverse (burst). rot turns the lobes away from the top.
+  const lobes = (k, d, p = 1, rot = 0) => t => {
+    const c = Math.cos(k * (t + Math.PI / 2) + rot);
+    return 1 - d * (1 - (Math.sign(c) * Math.abs(c) ** p + 1) / 2);
+  };
+  const SHAPES = {
+    circle: () => 1,
+    square: t => (Math.abs(Math.cos(t)) ** 4.5 + Math.abs(Math.sin(t)) ** 4.5) ** (-1 / 4.5),
+    cookie4: lobes(4, 0.16, 1, Math.PI),
+    cookie6: lobes(6, 0.1),
+    cookie9: lobes(9, 0.08),
+    cookie12: lobes(12, 0.05),
+    clover4: lobes(4, 0.32, 0.45, Math.PI),
+    clover8: lobes(8, 0.2, 0.5),
+    sunny: lobes(8, 0.08),
+    flower: lobes(6, 0.22, 0.6),
+    burst: lobes(10, 0.14, 1.8),
+    pentagon: lobes(5, 0.1, 1.6),
+  };
+  const shapeCache = {};
+  function shapeR(name) {
+    if (!shapeCache[name]) {
+      const arr = ANG.map(SHAPES[name] || SHAPES.circle), mx = Math.max(...arr);
+      shapeCache[name] = arr.map(v => v / mx);
     }
-    return d + "Z";
+    return shapeCache[name];
+  }
+  function noiseArr(seed) {
+    const R = rng(seed), w = [];
+    let norm = 0;
+    for (let k = 1; k <= 4; k++) { const a = (0.3 + R()) / k; w.push([k, a, R() * Math.PI * 2]); norm += a; }
+    return ANG.map(t => w.reduce((s, [k, a, ph]) => s + a * Math.sin(k * t + ph), 0) / norm);
+  }
+  function polarPath(r, w, h, nz, wob) {
+    return smoothPath(ANG.map((t, i) => {
+      const rr = Math.min(1, r[i]) * (1 - wob * 0.08 * (nz[i] + 1) / 2);
+      return [w / 2 + rr * (w / 2 - 0.5) * Math.cos(t), h / 2 + rr * (h / 2 - 0.5) * Math.sin(t)];
+    }));
   }
 
   /* ---------- Shaping elements ---------- */
   const NS = "http://www.w3.org/2000/svg";
   const shaped = new Map();   // element -> reshape()
   const ro = new ResizeObserver(entries => entries.forEach(e => { const fn = shaped.get(e.target); if (fn) fn(); }));
+  const setClip = (el, d) => { const c = `path('${d}')`; el.style.clipPath = c; el.style.webkitClipPath = c; };
 
   function seedOf(el, i) { return (Number(el.closest("[data-seed]")?.dataset.seed) || 1) * 97 + i * 13 + shuffle * 7919; }
 
   function setupGlass(piece) {
     const sg = piece.querySelector(".sg");
-    const sh = document.createElement("div");
-    sh.className = "sg-shadow"; sh.innerHTML = "<div></div>";
-    piece.prepend(sh);
+    const amb = document.createElement("div"), key = document.createElement("div");
+    amb.className = "sg-shadow amb"; key.className = "sg-shadow key";
+    amb.innerHTML = key.innerHTML = "<div></div>";
+    piece.prepend(amb, key);
     const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("class", "sg-rim"); svg.setAttribute("aria-hidden", "true");
     svg.innerHTML = '<path class="rim-edge" filter="url(#sg-soft)"/><path class="rim-lo"/><path class="rim-hi"/>';
@@ -563,9 +704,7 @@
       const r = P.round * (m - 2 * amp) / 2 * (1 + P.wobble * 0.55);
       const pad = Math.round(Math.max(14 + amp, amp + 0.3 * r + 6));
       if (Math.abs(pad - (piece._pad || 0)) > 1) { piece._pad = pad; sg.style.padding = pad + "px"; }
-      const clip = `path('${d}')`;
-      sg.style.clipPath = clip; sg.style.webkitClipPath = clip;
-      sh.firstChild.style.clipPath = clip; sh.firstChild.style.webkitClipPath = clip;
+      setClip(sg, d); setClip(amb.firstChild, d); setClip(key.firstChild, d);
       svg.setAttribute("width", w); svg.setAttribute("height", h); svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
       // Strokes are centred on the outline; the outer half is clipped away, so
       // the visible band is half the stroke width.
@@ -577,28 +716,142 @@
     shaped.set(sg, reshape); ro.observe(sg);
   }
 
-  function setupPebble(el, i) {
-    const reshape = () => {
-      const w = el.offsetWidth, h = el.offsetHeight;
-      if (!w || !h) return;
+  /* Inner pebbles. In Expressive mode, elements with data-shape (or data-on /
+     data-off for toggles) take a shape from the expressive set and morph on a
+     spring when their state changes. */
+  const pbState = new Map();
+  const isPolar = el => el.dataset.loader !== undefined || (P.buttons === "expressive" && !!(el.dataset.shape || el.dataset.on));
+  const targetShape = el => el.dataset.on
+    ? (el.getAttribute("aria-pressed") === "true" ? el.dataset.on : (el.dataset.off || "circle"))
+    : (el.dataset.shape || "circle");
+
+  function drawPb(st) {
+    const el = st.el, w = el.offsetWidth, h = el.offsetHeight;
+    if (!w || !h) return;
+    if (isPolar(el)) {
+      if (!st.r) st.r = shapeR(targetShape(el));
+      setClip(el, polarPath(st.r, w, h, st.nz, P.wobble * 0.8));
+    } else {
       const round = el.dataset.round ? Number(el.dataset.round) : P.round;
+      const radii = el.dataset.radii ? el.dataset.radii.split(" ").map(Number) : null;
       const wob = P.wobble * (el.dataset.wobble ? Number(el.dataset.wobble) : 0.8);
-      const clip = `path('${pebblePath(w, h, { round, wobble: wob, seed: seedOf(el, i + 1), pad: 0.5 })}')`;
-      el.style.clipPath = clip; el.style.webkitClipPath = clip;
+      setClip(el, pebblePath(w, h, { round, wobble: wob, seed: seedOf(el, st.i + 1), pad: 0.5, radii }));
+    }
+  }
+  function morphTo(st, name) {
+    if (!isPolar(st.el)) { st.r = null; drawPb(st); return; }
+    const to = shapeR(name || targetShape(st.el));
+    if (!st.r || reduceMotion) { st.r = to; drawPb(st); return; }
+    st.from = st.r.slice(); st.to = to; st.m.x = 0; st.m.v = 0;
+    addTicker(st.morphTick);
+  }
+  function setupPebble(el, i) {
+    const st = { el, i, r: null, nz: noiseArr(seedOf(el, i + 50)), m: { x: 1, v: 0 }, sq: { x: 1, v: 0 }, sqT: 1 };
+    st.morphTick = dt => {
+      const done = springStep(st.m, 1, dt);
+      st.r = st.from.map((a, j) => a + (st.to[j] - a) * st.m.x);
+      if (done) st.r = st.to;
+      drawPb(st);
+      return !done;
     };
-    shaped.set(el, reshape); ro.observe(el);
+    // Press squish, as M3 Expressive buttons do; uses the individual `scale`
+    // property so it never fights a transform.
+    st.sqTick = dt => {
+      const done = springStep(st.sq, st.sqT, dt, 320);
+      el.style.scale = done && st.sqT === 1 ? "" : st.sq.x.toFixed(4);
+      return !done;
+    };
+    pbState.set(el, st);
+    shaped.set(el, () => drawPb(st)); ro.observe(el);
   }
 
   document.querySelectorAll(".piece").forEach(setupGlass);
   document.querySelectorAll(".pb").forEach(setupPebble);
   const reshapeAll = () => shaped.forEach(fn => fn());
+  const resetShapes = () => { pbState.forEach(st => { st.r = null; st.nz = noiseArr(seedOf(st.el, st.i + 50)); }); reshapeAll(); };
+
+  /* ---------- Colour: oklch -> sRGB with gamut mapping ---------- */
+  function oklabToSrgb(L, C, h) {
+    const a = C * Math.cos(h * Math.PI / 180), b = C * Math.sin(h * Math.PI / 180);
+    const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+    return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+           -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+           -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+  }
+  const inGamut = c => c.every(v => v >= 0 && v <= 1);
+  // Keep lightness and hue; reduce chroma until the colour fits in sRGB.
+  function rgbArr(L, C, h) {
+    let lin = oklabToSrgb(L, C, h);
+    if (!inGamut(lin)) {
+      let lo = 0, hi = C;
+      for (let i = 0; i < 18; i++) { const mid = (lo + hi) / 2; if (inGamut(oklabToSrgb(L, mid, h))) lo = mid; else hi = mid; }
+      lin = oklabToSrgb(L, lo, h);
+    }
+    return lin.map(v => {
+      v = Math.min(1, Math.max(0, v));
+      return Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055));
+    });
+  }
+  const rgbTriplet = (L, C, h) => rgbArr(L, C, h).join(" ");
+  const rgbHex = (L, C, h) => "#" + rgbArr(L, C, h).map(v => v.toString(16).padStart(2, "0")).join("");
+
+  const MATERIAL = {
+    light: { glass: [0.95, 0.06], edge: [0.74, 0.14], ink: [0.27, 0.06], pb: [0.99, 0.03], active: [0.62, 0.14],
+             shadow: [0.32, 0.09], art1: [0.85, 0.1, 40], art2: [0.55, 0.13] },
+    dark:  { glass: [0.4, 0.08], edge: [0.78, 0.13], ink: [0.97, 0.02], pb: [0.7, 0.05], active: [0.8, 0.13],
+             shadow: [0.08, 0.03], art1: [0.85, 0.1, 40], art2: [0.55, 0.13] },
+  };
+  // Material You colour roles: every piece takes its hue from the seed.
+  const ROLES = { primary: [0, 1], secondary: [0, 0.4], tertiary: [60, 0.9], neutral: [0, 0.15] };
+  const harmonise = (h, seed, t) => { const d = ((seed - h + 540) % 360) - 180; return h + d * t; };
+
+  function paintColours() {
+    const dark = darkMQ.matches;
+    const mat = MATERIAL[dark ? "dark" : "light"];
+    const g = GLASS.find(x => x.id === P.glass);
+    const dyn = P.glass === "dynamic";
+    document.querySelectorAll(".piece").forEach(p => {
+      if (!p.dataset.h0) p.dataset.h0 = p.style.getPropertyValue("--h");
+      const [dh0, rk] = dyn ? ROLES[p.dataset.role] : [0, 1];
+      const h = dyn ? P.seed + dh0 : (g.h ?? Number(p.dataset.h0));
+      const k = P.glass === "clear" ? 0 : rk;
+      // Tonal elevation: in dark mode, higher surfaces are a little lighter.
+      const lift = dark ? 0.03 * (Number(p.style.getPropertyValue("--elev")) - 1) : 0;
+      for (const [name, [L, C, dh = 0]] of Object.entries(mat)) {
+        const kk = name === "art1" || name === "art2" || name === "active" ? Math.max(k, 0.5) * (P.glass === "clear" ? 0 : 1) : k;
+        p.style.setProperty("--c-" + name, rgbTriplet(name === "glass" ? L + lift : L, C * kk, h + dh));
+      }
+    });
+    // App icons keep their own hues, harmonised towards the seed when dynamic.
+    document.querySelectorAll(".app .pb").forEach(el => {
+      const h = dyn ? harmonise(Number(el.dataset.h), P.seed, 0.5) : Number(el.dataset.h);
+      el.style.setProperty("--c-app", rgbTriplet(mat.active[0], mat.active[1], h));
+    });
+    const root = document.documentElement.style;
+    if (dyn) {
+      root.setProperty("--accent", rgbHex(dark ? 0.78 : 0.58, 0.12, P.seed));
+      root.setProperty("--chip-on", rgbHex(dark ? 0.86 : 0.36, dark ? 0.07 : 0.08, P.seed));
+      root.setProperty("--chip-on-ink", dark ? rgbHex(0.2, 0.03, P.seed) : "#fff");
+    } else ["--accent", "--chip-on", "--chip-on-ink"].forEach(v => root.removeProperty(v));
+  }
 
   /* ---------- Sea backdrop ---------- */
   const sea = document.getElementById("sea");
   const ctx = sea.getContext("2d");
-  let SW = 0, SH = 0, items = [], simT = 0, lastFrame = 0, raf = 0;
+  let SW = 0, SH = 0, items = [], simT = 0;
 
-  function palette() { return PALETTES[P.palette][darkMQ.matches ? "dark" : "light"]; }
+  function palette() {
+    const dark = darkMQ.matches;
+    if (P.palette !== "dynamic") return PALETTES[P.palette][dark ? "dark" : "light"];
+    // Tonal palette from the seed, with a tertiary hue 60 degrees round.
+    const s = P.seed, t = (P.seed + 60) % 360, n = (P.seed + 320) % 360;
+    const tones = dark
+      ? [[0.42, 0.09, s], [0.58, 0.12, s], [0.3, 0.07, s], [0.5, 0.1, t], [0.66, 0.11, t], [0.45, 0.08, n], [0.25, 0.03, s]]
+      : [[0.86, 0.07, s], [0.66, 0.13, s], [0.46, 0.1, s], [0.8, 0.1, t], [0.58, 0.12, t], [0.72, 0.08, n], [0.97, 0.015, s]];
+    return { bg: dark ? rgbHex(0.18, 0.02, s) : rgbHex(0.93, 0.02, s), c: tones.map(([L, C, h]) => rgbHex(L, C, h)) };
+  }
 
   function buildSea() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -616,7 +869,7 @@
           const w = s, h = s * asp;
           items.push({ x: x + (R() - 0.5) * cell * 0.6, y: y + (R() - 0.5) * cell * 0.6, w, h,
             path: new Path2D(pebblePath(w, h, { round: 0.85, wobble: 0.9, seed: Math.floor(R() * 1e9), pad: 0 })),
-            col: cols[Math.floor(R() * cols.length)], rot: R() * Math.PI, spin: (R() - 0.5) * 0.06,
+            ci: Math.floor(R() * cols.length), rot: R() * Math.PI, spin: (R() - 0.5) * 0.06,
             orb: 6 + R() * 14, sp: 0.15 + R() * 0.25, ph: R() * Math.PI * 2 });
         }
       }
@@ -626,14 +879,14 @@
         const s = big * (0.18 + R() * 0.32), asp = 0.6 + R() * 0.4;
         items.push({ x: R() * SW, y: R() * SH, w: s, h: s * asp,
           path: new Path2D(pebblePath(s, s * asp, { round: 1, wobble: 1, seed: Math.floor(R() * 1e9), pad: 0 })),
-          col: cols[i % cols.length], rot: R() * Math.PI, spin: (R() - 0.5) * 0.05,
+          ci: i % cols.length, rot: R() * Math.PI, spin: (R() - 0.5) * 0.05,
           orb: big * (0.04 + R() * 0.08), sp: 0.05 + R() * 0.08, ph: R() * Math.PI * 2 });
       }
     } else {
       const n = 9;
       for (let i = 0; i < n; i++) {
         items.push({ y: (i + 0.6) * SH / n, amp: 14 + R() * 30, k: (Math.PI * 2) / (260 + R() * 420),
-          sp: 0.4 + R() * 0.5, ph: R() * Math.PI * 2, col: cols[i % cols.length] });
+          sp: 0.4 + R() * 0.5, ph: R() * Math.PI * 2, ci: i % cols.length });
       }
     }
   }
@@ -644,7 +897,7 @@
     const t = simT;
     if (P.pattern === "waves") {
       items.forEach(b => {
-        ctx.fillStyle = b.col; ctx.beginPath(); ctx.moveTo(0, SH);
+        ctx.fillStyle = pal.c[b.ci]; ctx.beginPath(); ctx.moveTo(0, SH);
         for (let x = 0; x <= SW + 12; x += 12) {
           const y = b.y + Math.sin(x * b.k + t * b.sp + b.ph) * b.amp + Math.sin(x * b.k * 2.3 - t * b.sp * 0.7) * b.amp * 0.3;
           ctx.lineTo(x, y);
@@ -659,21 +912,12 @@
       ctx.translate(p.x + Math.cos(t * p.sp + p.ph) * p.orb, p.y + Math.sin(t * p.sp * 1.3 + p.ph) * p.orb);
       ctx.rotate(p.rot + t * p.spin);
       ctx.translate(-p.w / 2, -p.h / 2);
-      ctx.fillStyle = p.col; ctx.fill(p.path);
+      ctx.fillStyle = pal.c[p.ci]; ctx.fill(p.path);
       ctx.restore();
     });
     ctx.globalAlpha = 1;
   }
-
-  function frame(now) {
-    raf = 0;
-    const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0;
-    lastFrame = now;
-    simT += dt * P.drift * 2;
-    drawSea();
-    if (P.drift > 0 && !document.hidden) raf = requestAnimationFrame(frame);
-  }
-  function kick() { if (!raf) { lastFrame = 0; raf = requestAnimationFrame(frame); } }
+  const seaTick = dt => { simT += dt * P.drift * 2; drawSea(); return P.drift > 0; };
 
   function applyBody() {
     const bg = palette().bg;
@@ -683,8 +927,13 @@
   }
 
   /* ---------- Parameters -> CSS ---------- */
-  const root = document.documentElement.style;
+  const FONTS = {
+    grotesque: { ui: "var(--system)", display: "'Bricolage Grotesque', system-ui, sans-serif" },
+    system: { ui: "var(--system)", display: "var(--system)" },
+    flex: { ui: "'Roboto Flex', system-ui, sans-serif", display: "'Roboto Flex', system-ui, sans-serif" },
+  };
   function applyVars() {
+    const root = document.documentElement.style;
     root.setProperty("--frost", P.frost + "px");
     root.setProperty("--sat", P.sat + "%");
     root.setProperty("--tint", P.tint);
@@ -693,56 +942,19 @@
     root.setProperty("--shadow", P.shadow);
     root.setProperty("--sb", (6 + P.shadow * 18) + "px");
     root.setProperty("--sy", (4 + P.shadow * 14) + "px");
+    root.setProperty("--ui-font", FONTS[P.type].ui);
+    root.setProperty("--display-font", FONTS[P.type].display);
+    root.setProperty("--display-wght", P.wght);
+    root.setProperty("--display-wdth", P.type === "flex" ? P.wdth : 100);
     document.getElementById("sg-soft-blur").setAttribute("stdDeviation", Math.max(0.5, P.edge * 0.5));
     paintColours();
-  }
-
-  /* ---------- Colour: oklch -> sRGB with gamut mapping ---------- */
-  function oklabToSrgb(L, C, h) {
-    const a = C * Math.cos(h * Math.PI / 180), b = C * Math.sin(h * Math.PI / 180);
-    const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-    const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-    const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
-    return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-           -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-           -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
-  }
-  const inGamut = c => c.every(v => v >= 0 && v <= 1);
-  // Keep lightness and hue; reduce chroma until the colour fits in sRGB.
-  function rgbTriplet(L, C, h) {
-    let lin = oklabToSrgb(L, C, h);
-    if (!inGamut(lin)) {
-      let lo = 0, hi = C;
-      for (let i = 0; i < 18; i++) { const mid = (lo + hi) / 2; if (inGamut(oklabToSrgb(L, mid, h))) lo = mid; else hi = mid; }
-      lin = oklabToSrgb(L, lo, h);
-    }
-    return lin.map(v => {
-      v = Math.min(1, Math.max(0, v));
-      return Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055));
-    }).join(" ");
-  }
-  const MATERIAL = {
-    light: { glass: [0.95, 0.06], edge: [0.74, 0.14], ink: [0.27, 0.06], pb: [0.99, 0.03], active: [0.62, 0.14],
-             shadow: [0.32, 0.09], art1: [0.85, 0.1, 40], art2: [0.55, 0.13] },
-    dark:  { glass: [0.4, 0.08], edge: [0.78, 0.13], ink: [0.97, 0.02], pb: [0.7, 0.05], active: [0.8, 0.13],
-             shadow: [0.08, 0.03], art1: [0.85, 0.1, 40], art2: [0.55, 0.13] },
-  };
-  function paintColours() {
-    const mat = MATERIAL[darkMQ.matches ? "dark" : "light"];
-    const g = GLASS.find(x => x.id === P.glass);
-    const k = P.glass === "clear" ? 0 : 1;
-    document.querySelectorAll(".piece").forEach(p => {
-      if (!p.dataset.h0) p.dataset.h0 = p.style.getPropertyValue("--h");
-      const h = g.h ?? Number(p.dataset.h0);
-      for (const [name, [L, C, dh = 0]] of Object.entries(mat)) p.style.setProperty("--c-" + name, rgbTriplet(L, C * k, h + dh));
-    });
-    // App icons keep their own hues whatever the glass colour.
-    document.querySelectorAll(".app .pb").forEach(el => el.style.setProperty("--c-app", rgbTriplet(mat.active[0], mat.active[1], Number(el.dataset.h))));
+    rows.seed?.classList.toggle("hidden", P.glass !== "dynamic" && P.palette !== "dynamic");
+    rows.wdth?.classList.toggle("hidden", P.type !== "flex");
   }
 
   /* ---------- Controls ---------- */
   const controls = document.getElementById("controls");
-  const inputs = {}, chipSets = {};
+  const inputs = {}, chipSets = {}, rows = {};
 
   function setPct(inp) {
     const pct = (inp.value - inp.min) / (inp.max - inp.min) * 100;
@@ -752,9 +964,19 @@
   function onChange(key) {
     applyVars();
     if (key === "wobble" || key === "round" || key === "edge") reshapeAll();
-    if (key === "palette" || key === "pattern") { buildSea(); applyBody(); drawSea(); }
-    if (key === "drift") { if (P.drift > 0) kick(); }
-    if (P.drift === 0) drawSea();
+    if (key === "buttons") resetShapes();
+    if (key === "palette" || key === "pattern" || (key === "seed" && P.palette === "dynamic")) { buildSea(); applyBody(); }
+    if (key === "drift" && P.drift > 0) addTicker(seaTick);
+    if (P.drift === 0 || !tickers.has(seaTick)) drawSea();
+    syncPresets();
+  }
+
+  function chipButton(o, onClick) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.dataset.id = o.id;
+    b.innerHTML = (o.sw ? `<span class="sw" style="background:${o.sw}"></span>` : "") + o.name;
+    b.addEventListener("click", onClick);
+    return b;
   }
 
   GROUPS.forEach(g => {
@@ -763,25 +985,18 @@
     sec.innerHTML = `<h2>${g.name}</h2>`;
     g.items.forEach(item => {
       if (item.startsWith("chips:")) {
-        const key = item.slice(6);
-        const opts = key === "glass" ? GLASS : key === "pattern" ? PATTERNS
-          : Object.entries(PALETTES).map(([id, v]) => ({ id, name: v.name, sw: v.light.c[1] }));
+        const key = item.slice(6), spec = CHIPS[key];
+        const lab = document.createElement("div");
+        lab.className = "sub"; lab.textContent = spec.label;
         const wrap = document.createElement("div");
-        wrap.className = "chips"; wrap.setAttribute("role", "group");
-        wrap.setAttribute("aria-label", key === "glass" ? "Glass colour" : key === "pattern" ? "Backdrop pattern" : "Backdrop palette");
-        opts.forEach(o => {
-          const b = document.createElement("button");
-          b.className = "chip"; b.type = "button"; b.dataset.id = o.id;
-          b.innerHTML = (o.sw ? `<span class="sw" style="background:${o.sw}"></span>` : "") + o.name;
-          b.addEventListener("click", () => { P[key] = o.id; syncControls(); onChange(key); });
-          wrap.appendChild(b);
-        });
+        wrap.className = "chips"; wrap.setAttribute("role", "group"); wrap.setAttribute("aria-label", spec.label);
+        spec.opts.forEach(o => wrap.appendChild(chipButton(o, () => { P[key] = o.id; syncControls(); onChange(key); })));
         chipSets[key] = wrap;
-        sec.appendChild(wrap);
+        sec.append(lab, wrap);
       } else {
         const s = SLIDERS[item];
         const row = document.createElement("div");
-        row.className = "ctl";
+        row.className = "ctl" + (s.cls ? " " + s.cls : "");
         row.innerHTML = `<label for="p-${item}">${s.label}</label><output id="o-${item}" for="p-${item}"></output>
           <input type="range" id="p-${item}" min="${s.min}" max="${s.max}" step="${s.step}">`;
         const inp = row.querySelector("input"), out = row.querySelector("output");
@@ -789,11 +1004,29 @@
           P[item] = Number(inp.value); out.textContent = s.fmt(P[item]); setPct(inp); onChange(item);
         });
         inputs[item] = { inp, out, s };
+        rows[item] = row;
         sec.appendChild(row);
       }
     });
     controls.appendChild(sec);
   });
+
+  const presetWrap = document.getElementById("presets");
+  Object.entries(PRESETS).forEach(([id, pr]) => presetWrap.appendChild(chipButton({ id, name: pr.name }, () => {
+    const prevButtons = P.buttons;
+    Object.assign(P, pr.v);
+    syncControls(); applyVars();
+    if (P.buttons !== prevButtons) resetShapes(); else reshapeAll();
+    if (P.palette === "dynamic") { buildSea(); applyBody(); }
+    if (!tickers.has(seaTick)) drawSea();
+    syncPresets();
+  })));
+  function syncPresets() {
+    presetWrap.querySelectorAll(".chip").forEach(b => {
+      const v = PRESETS[b.dataset.id].v;
+      b.setAttribute("aria-pressed", String(Object.keys(v).every(k => P[k] === v[k])));
+    });
+  }
 
   function syncControls() {
     Object.entries(inputs).forEach(([k, { inp, out, s }]) => { inp.value = P[k]; out.textContent = s.fmt(P[k]); setPct(inp); });
@@ -801,11 +1034,12 @@
   }
 
   document.getElementById("shuffle").addEventListener("click", () => {
-    shuffle++; reshapeAll(); buildSea(); drawSea();
+    shuffle++; resetShapes(); buildSea(); drawSea();
   });
   document.getElementById("reset").addEventListener("click", () => {
     Object.assign(P, DEFAULTS); shuffle = 0;
-    syncControls(); applyVars(); reshapeAll(); buildSea(); applyBody(); drawSea(); if (P.drift > 0) kick();
+    syncControls(); applyVars(); resetShapes(); buildSea(); applyBody(); drawSea(); syncPresets();
+    if (P.drift > 0) addTicker(seaTick);
   });
 
   const togglePanel = document.getElementById("toggle-panel");
@@ -815,9 +1049,32 @@
     togglePanel.setAttribute("aria-expanded", String(!collapsed));
   });
 
+  /* ---------- Press feedback: squish and ripple ---------- */
+  const stage = document.getElementById("stage");
+  const held = new Set();
+  stage.addEventListener("pointerdown", e => {
+    const b = e.target.closest("button.pb");
+    if (b) { const st = pbState.get(b); st.sqT = 0.88; held.add(st); addTicker(st.sqTick); }
+    const sg = e.target.closest(".sg");
+    if (sg && P.feedback === "ripple" && !reduceMotion) {
+      const rect = sg.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const rad = Math.hypot(Math.max(x, rect.width - x), Math.max(y, rect.height - y));
+      const rp = document.createElement("span");
+      rp.className = "ripple";
+      Object.assign(rp.style, { left: x - rad + "px", top: y - rad + "px", width: 2 * rad + "px", height: 2 * rad + "px" });
+      sg.insertBefore(rp, sg.querySelector(".sg-c"));
+      rp.animate([{ transform: "scale(0.05)", opacity: 1 }, { transform: "scale(1)", opacity: 0 }],
+        { duration: 750, easing: "cubic-bezier(.2,.7,.3,1)" }).onfinish = () => rp.remove();
+    }
+  });
+  const release = () => { held.forEach(st => { st.sqT = 1; addTicker(st.sqTick); }); held.clear(); };
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => window.addEventListener(ev, release));
+
   /* ---------- Demo widgets ---------- */
-  document.querySelectorAll(".toggle .pb").forEach(b => b.addEventListener("click", () =>
-    b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"))));
+  document.querySelectorAll(".toggle .pb").forEach(b => b.addEventListener("click", () => {
+    b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+    morphTo(pbState.get(b));
+  }));
 
   function tick() {
     const d = new Date();
@@ -826,36 +1083,84 @@
   }
   tick(); setInterval(tick, 10000);
 
+  // Music: wavy progress while playing, flat when paused
   const LEN = 227;
   let pos = 72, playing = false;
   const play = document.getElementById("play"), playIcon = document.getElementById("play-icon");
-  const progFill = document.getElementById("prog-fill"), tNow = document.getElementById("t-now");
+  const prog = document.getElementById("progress"), tNow = document.getElementById("t-now");
+  const [pAct, pInact, pStop] = prog.querySelector("svg").children;
+  const wave = { amp: { x: 0, v: 0 }, phase: 0 };
+  function drawWave() {
+    const W = prog.clientWidth, H = 16, mid = H / 2;
+    if (!W) return;
+    const svg = prog.firstChild;
+    svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const fx = 2 + (pos / LEN) * (W - 4), end = Math.max(2, fx - 5), amp = wave.amp.x;
+    let d = `M2 ${f1(mid + amp * Math.sin(wave.phase))}`;
+    for (let x = 4; x <= end; x += 2) d += `L${x} ${f1(mid + amp * Math.sin(x / 26 * 2 * Math.PI + wave.phase))}`;
+    pAct.setAttribute("d", d);
+    const s = fx + 5, e = W - 2;
+    pInact.style.display = e - s > 2 ? "" : "none";
+    pInact.setAttribute("x1", s); pInact.setAttribute("x2", e); pInact.setAttribute("y1", mid); pInact.setAttribute("y2", mid);
+    pStop.setAttribute("cx", W - 2); pStop.setAttribute("cy", mid);
+    pStop.style.display = e - s > 10 ? "" : "none";
+  }
+  const waveTick = dt => {
+    const done = springStep(wave.amp, playing ? 3 : 0, dt, 120);
+    if (playing && !reduceMotion) wave.phase -= dt * 5;
+    drawWave();
+    return (playing && !reduceMotion) || !done;
+  };
+  new ResizeObserver(drawWave).observe(prog);
   function renderProgress() {
-    progFill.style.width = Math.max(4, pos / LEN * 100) + "%";
     tNow.textContent = Math.floor(pos / 60) + ":" + String(Math.floor(pos % 60)).padStart(2, "0");
+    drawWave();
   }
   play.addEventListener("click", () => {
     playing = !playing;
     play.setAttribute("aria-pressed", String(playing));
     play.setAttribute("aria-label", playing ? "Pause" : "Play");
     playIcon.innerHTML = playing ? '<path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+    morphTo(pbState.get(play));
+    addTicker(waveTick);
   });
   setInterval(() => { if (playing) { pos = (pos + 1) % LEN; renderProgress(); } }, 1000);
   renderProgress();
 
-  const bright = document.getElementById("bright"), brightFill = document.getElementById("bright-fill"), brightOut = document.getElementById("bright-out");
+  // Daylight: M3 Expressive slider
+  const bright = document.getElementById("bright"), brightWrap = document.getElementById("bright-wrap");
+  const bAct = brightWrap.querySelector(".b-act"), bInact = brightWrap.querySelector(".b-inact");
+  const bHandle = brightWrap.querySelector(".b-handle"), bStop = brightWrap.querySelector(".b-stop");
+  const brightOut = document.getElementById("bright-out");
   function renderBright() {
-    const v = Number(bright.value);
-    brightFill.style.width = Math.max(10, (v - 40) / 90 * 100) + "%";
+    const v = Number(bright.value), W = brightWrap.clientWidth;
+    const hx = 2 + (v - 40) / 90 * (W - 4), gap = 6;
+    const aw = hx - 2 - gap, il = hx + 2 + gap, iw = W - il;
+    bAct.style.width = Math.max(0, aw) + "px"; bAct.style.display = aw > 6 ? "" : "none";
+    bInact.style.left = il + "px"; bInact.style.width = Math.max(0, iw) + "px"; bInact.style.display = iw > 6 ? "" : "none";
+    bHandle.style.left = hx + "px";
+    bStop.style.display = iw > 24 ? "" : "none";
     brightOut.textContent = v + "%";
     sea.style.filter = v === 100 ? "" : `brightness(${v / 100})`;
   }
   bright.addEventListener("input", renderBright);
-  renderBright();
+  new ResizeObserver(renderBright).observe(brightWrap);
+
+  // Loading indicator: cycles through the shape set while the container spins (CSS)
+  const LOADER_SHAPES = ["cookie9", "pentagon", "clover4", "burst", "cookie4", "flower", "sunny", "clover8"];
+  const loaderSt = pbState.get(document.querySelector("[data-loader]"));
+  let li = 0;
+  loaderSt.el.dataset.shape = LOADER_SHAPES[0];
+  if (!reduceMotion) setInterval(() => {
+    if (document.hidden) return;
+    li = (li + 1) % LOADER_SHAPES.length;
+    loaderSt.el.dataset.shape = LOADER_SHAPES[li];
+    morphTo(loaderSt, LOADER_SHAPES[li]);
+  }, 900);
 
   /* ---------- Start ---------- */
-  syncControls(); applyVars(); buildSea(); applyBody(); drawSea();
-  if (P.drift > 0) kick();
+  syncControls(); applyVars(); buildSea(); applyBody(); drawSea(); syncPresets();
+  if (P.drift > 0) addTicker(seaTick);
 
   let resizeTimer;
   window.addEventListener("resize", () => {
@@ -863,7 +1168,9 @@
     resizeTimer = setTimeout(() => { buildSea(); drawSea(); }, 150);
   });
   darkMQ.addEventListener("change", () => { paintColours(); buildSea(); applyBody(); drawSea(); });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && P.drift > 0) kick(); });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && tickers.size && !rafId) { lastT = 0; rafId = requestAnimationFrame(loop); }
+  });
 })();
 </script>
 </body>
