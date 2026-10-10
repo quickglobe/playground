@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sea Glass</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ece4d4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Live parameters (written by JS) */
+    --frost: 18px; --sat: 140%; --tint: 0.32; --grain: 0.16; --rim: 0.6;
+    --shadow: 0.45;
+
+    /* Per-hue glass colours (--c-glass, --c-edge, --c-ink, --c-pb, --c-active,
+       --c-shadow, --c-art1, --c-art2) are set on each piece by JS as gamut-mapped
+       sRGB triplets. Out-of-gamut oklch() here overflowed the compositor's
+       buffers behind backdrop-filter and painted pure cyan/yellow speckle. */
+    --pa: 0.5;                       /* inner pebble (buttons) opacity */
+    --on-active: #fff;
+    --sheen: 0.28;
+
+    /* Panel chrome */
+    --panel-bg: rgb(241 251 251 / 0.72);
+    --panel-ink: #11242d;
+    --panel-muted: #526771;
+    --panel-line: rgb(17 36 45 / 0.12);
+    --accent: #00948e;
+    --track: rgb(17 36 45 / 0.14);
+    --chip-on: #0e3944;
+    --chip-on-ink: #fff;
+
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --pa: 0.22;
+      --on-active: #001924;
+      --sheen: 0.12;
+
+      --panel-bg: rgb(14 29 36 / 0.72);
+      --panel-ink: #e7f0f2;
+      --panel-muted: #98a8ad;
+      --panel-line: rgb(231 240 242 / 0.12);
+      --accent: #55cec0;
+      --track: rgb(231 240 242 / 0.16);
+      --chip-on: #a4deda;
+      --chip-on-ink: #061821;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #ece4d4; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+    color: var(--panel-ink); min-height: 100vh; -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  button, input { font: inherit; color: inherit; }
+
+  #sea { position: fixed; top: 0; left: 0; width: 100vw; height: 100lvh; display: block; z-index: 0; }
+
+  .layout {
+    position: relative; z-index: 1; display: grid; grid-template-columns: 1fr; gap: 28px;
+    max-width: 1240px; margin: 0 auto;
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
+  }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    display: grid; gap: 14px; width: 100%; max-width: 760px; margin: 0 auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "clock clock"
+      "tide toggles"
+      "music music"
+      "slider slider"
+      "note note"
+      "dock dock";
+  }
+  @media (min-width: 640px) {
+    .stage {
+      gap: 20px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-areas:
+        "clock clock tide tide"
+        "music music toggles toggles"
+        "music music slider slider"
+        "note note note note"
+        "dock dock dock dock";
+    }
+  }
+  .a-clock { grid-area: clock; } .a-tide { grid-area: tide; } .a-toggles { grid-area: toggles; }
+  .a-music { grid-area: music; } .a-slider { grid-area: slider; } .a-note { grid-area: note; }
+  .a-dock { grid-area: dock; }
+
+  /* A piece is the unclipped wrapper: it holds the shadow and the glass as
+     siblings. Nothing on it may set filter/opacity/mask, or it would become a
+     backdrop root and the glass would stop seeing the sea behind it. */
+  .piece { position: relative; min-width: 0; }
+  .sg-shadow {
+    position: absolute; inset: 0; pointer-events: none;
+    filter: blur(var(--sb, 14px)); transform: translateY(var(--sy, 10px));
+    opacity: var(--shadow);
+  }
+  .sg-shadow > div { position: absolute; inset: 0; background: rgb(var(--c-shadow) / 0.75); }
+  @media (prefers-color-scheme: dark) { .sg-shadow > div { background: rgb(var(--c-shadow) / 0.9); } }
+
+  .sg {
+    position: relative; height: 100%; isolation: isolate;
+    color: rgb(var(--c-ink));
+    background:
+      linear-gradient(155deg, rgb(255 255 255 / var(--sheen)) 0%, rgb(255 255 255 / 0) 55%),
+      rgb(var(--c-glass) / var(--tint));
+    -webkit-backdrop-filter: blur(var(--frost)) saturate(var(--sat));
+    backdrop-filter: blur(var(--frost)) saturate(var(--sat));
+    padding: 22px 24px;
+  }
+  /* Fine grain and coarse mottling: the frosted, tumbled surface */
+  .sg::before, .sg::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  }
+  /* Plain alpha speckle rather than mix-blend-mode: blend modes composite
+     unreliably with the clipped, translucent buttons inside the glass. */
+  .sg::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.45  0 0 0 0 0.45  3.2 0 0 0 -1.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: var(--grain);
+  }
+  .sg::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.6 0 0 0 -1.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+    opacity: calc(var(--grain) * 1.4);
+  }
+  .sg-rim { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 1; }
+  .sg-rim path { fill: none; }
+  .sg-rim .rim-edge { stroke: rgb(var(--c-edge)); opacity: 0.75; }
+  .sg-rim .rim-hi { stroke: url(#sg-hi); opacity: var(--rim); }
+  .sg-rim .rim-lo { stroke: url(#sg-lo); opacity: calc(var(--rim) * 0.8); }
+  .sg-c { position: relative; z-index: 2; height: 100%; }
+
+  /* Inner pebbles: buttons, tracks, icons. Tinted shapes without their own blur. */
+  .pb {
+    border: 0; background: rgb(var(--c-pb) / var(--pa));
+    color: inherit; display: grid; place-items: center; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pb[aria-pressed="true"] { background: rgb(var(--c-active) / 0.92); color: var(--on-active); }
+  .pb svg { width: 46%; height: 46%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  @media (hover: hover) and (pointer: fine) {
+    .pb { transition: transform 0.18s cubic-bezier(.34,1.56,.64,1); }
+    button.pb:hover { transform: translateY(-2px); }
+    button.pb:active { transform: scale(0.95); }
+  }
+  .pb:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+  .label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+  .big { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; line-height: 0.95; }
+  .small { font-size: 13.5px; opacity: 0.78; line-height: 1.4; }
+
+  /* clock */
+  .a-clock .sg-c { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; min-height: 120px; }
+  .a-clock .big { font-size: clamp(54px, 13vw, 76px); font-variant-numeric: tabular-nums; }
+
+  /* tide */
+  .a-tide .sg-c { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+  .a-tide .big { font-size: clamp(34px, 8vw, 46px); margin-top: 4px; }
+
+  /* toggles */
+  .toggles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 8px; }
+  .toggle { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .toggle .pb { width: 100%; max-width: 64px; aspect-ratio: 1; }
+  .toggle span { font-size: 11.5px; font-weight: 600; opacity: 0.8; }
+  .a-toggles .sg { padding: 18px 16px; }
+  @media (min-width: 640px) {
+    .toggles { grid-template-columns: repeat(4, 1fr); }
+    .a-toggles .sg { padding: 22px 20px; }
+  }
+
+  /* music */
+  .a-music .sg-c { display: flex; flex-direction: column; gap: 16px; }
+  .track { display: flex; gap: 14px; align-items: center; }
+  .art { width: 72px; height: 72px; flex-shrink: 0;
+    background: radial-gradient(circle at 30% 30%, rgb(var(--c-art1)), rgb(var(--c-art2)) 70%); }
+  .track h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .progress { height: 10px; position: relative; cursor: default; }
+  .progress .fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgb(var(--c-active) / 0.9); }
+  .times { display: flex; justify-content: space-between; font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.7; margin-top: -8px; }
+  .controls { display: flex; justify-content: center; align-items: center; gap: 14px; }
+  .controls .pb { width: 52px; height: 52px; }
+  .controls .play { width: 66px; height: 66px; }
+  .controls svg { fill: currentColor; stroke: none; }
+
+  /* slider */
+  .a-slider .sg-c { display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+  .bright-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .bright-row output { font-variant-numeric: tabular-nums; min-width: 4ch; text-align: right; font-weight: 600; }
+  .bright { position: relative; height: 44px; }
+  .bright .pb { position: absolute; inset: 0; cursor: pointer; }
+  .bright .fill { position: absolute; left: 0; top: 0; bottom: 0; pointer-events: none;
+    background: rgb(var(--c-active) / 0.9); }
+  .bright input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; margin: 0; }
+
+  /* notification */
+  .a-note .sg { padding: 18px 20px; }
+  .a-note .sg-c { display: flex; gap: 14px; align-items: flex-start; }
+  .a-note .icon { width: 44px; height: 44px; flex-shrink: 0; font-weight: 800; font-size: 18px; cursor: default; }
+  .note-top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+  .note-top strong { font-size: 15px; }
+
+  /* dock */
+  .a-dock .sg { padding: 16px 18px; }
+  .dock { display: flex; justify-content: space-around; gap: 8px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  .app .pb { width: clamp(50px, 14vw, 64px); aspect-ratio: 1; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px;
+    background: rgb(var(--c-app) / 0.8); color: var(--on-active); }
+  .app span { font-size: 11.5px; font-weight: 600; opacity: 0.8; }
+
+  /* ---------- Panel ---------- */
+  .panel {
+    background: var(--panel-bg); color: var(--panel-ink);
+    -webkit-backdrop-filter: blur(26px) saturate(150%); backdrop-filter: blur(26px) saturate(150%);
+    border-radius: 26px; box-shadow: inset 0 0 0 1px var(--panel-line), 0 10px 40px rgb(0 25 36 / 0.18);
+    width: 100%; max-width: 760px; margin: 0 auto;
+  }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 14px 22px; }
+  .panel-head h1 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.02em; line-height: 1; }
+  .panel-head a { color: var(--panel-muted); font-size: 13px; font-weight: 600; text-decoration: none; display: inline-block; margin-bottom: 4px; }
+  .panel-body { padding: 0 22px 22px; }
+  .intro { font-size: 14px; color: var(--panel-muted); line-height: 1.5; margin-bottom: 6px; }
+  .group { border-top: 1px solid var(--panel-line); padding-top: 14px; margin-top: 16px; }
+  .group h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--panel-muted); margin-bottom: 8px; }
+  .ctl { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; padding: 5px 0; }
+  .ctl label { font-size: 14.5px; font-weight: 500; }
+  .ctl output { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--panel-muted); min-width: 5ch; text-align: right; }
+  .ctl input[type=range] { grid-column: 1 / -1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
+  .chip, .btn {
+    border: 1px solid var(--panel-line); background: transparent; border-radius: 999px;
+    padding: 0 13px; min-height: 34px; font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--panel-ink);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: transparent; }
+  .chip .sw { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2); }
+  .btn { min-height: 40px; padding: 0 16px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  @media (hover: hover) {
+    .chip:hover, .btn:hover { background: var(--track); }
+    .chip[aria-pressed="true"]:hover { background: var(--chip-on); }
+  }
+  .chip:focus-visible, .btn:focus-visible, .ctl input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #toggle-panel { min-width: 72px; justify-content: center; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
+    background: linear-gradient(var(--accent), var(--accent)) 0 / var(--pct, 50%) 100% no-repeat, var(--track); }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--track); }
+  input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.3), inset 0 0 0 1px rgb(0 0 0 / 0.08); }
+  input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.3); }
+  @media (pointer: coarse) {
+    input[type=range] { height: 40px; }
+    input[type=range]::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -11px; }
+    input[type=range]::-moz-range-thumb { width: 28px; height: 28px; }
+  }
+
+  /* Phone / narrow: the panel becomes a bottom sheet so the glass stays in view
+     while parameters are changed. */
+  @media (max-width: 899px) {
+    .layout { padding-bottom: calc(46svh + 24px); }
+    body.sheet-collapsed .layout { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+    .panel {
+      position: fixed; left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right));
+      bottom: max(10px, env(safe-area-inset-bottom)); width: auto; z-index: 10;
+      max-height: 44svh; display: flex; flex-direction: column;
+    }
+    .panel-body { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+    body.sheet-collapsed .panel-body { display: none; }
+    .panel-head h1 { font-size: 22px; }
+  }
+  @media (min-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; padding-top: 40px; }
+    .stage { margin-top: 8px; }
+    .panel { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; }
+    #toggle-panel { display: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="sea" aria-hidden="true"></canvas>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sg-hi" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sg-lo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.32"/>
+    </linearGradient>
+    <filter id="sg-soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur id="sg-soft-blur" stdDeviation="2"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="layout">
+  <main class="stage" id="stage">
+    <div class="piece a-clock" style="--h:180" data-seed="11">
+      <div class="sg"><div class="sg-c">
+        <div class="label" id="date">Saturday 10 October</div>
+        <div class="big" id="time">10:42</div>
+      </div></div>
+    </div>
+
+    <div class="piece a-tide" style="--h:250" data-seed="23">
+      <div class="sg"><div class="sg-c">
+        <div class="label">Tide</div>
+        <div class="big">2.4 m</div>
+        <div class="small">Rising, high water at 14:12</div>
+        <div class="small">Sea 14°C, swell 0.8 m</div>
+      </div></div>
+    </div>
+
+    <div class="piece a-toggles" style="--h:150" data-seed="37">
+      <div class="sg"><div class="sg-c toggles">
+        <div class="toggle"><button class="pb" aria-pressed="true" aria-label="Wi-Fi" data-round="1">
+          <svg viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0"/><path d="M5.8 12.6a9 9 0 0 1 12.4 0"/><path d="M9.1 16.1a4.3 4.3 0 0 1 5.8 0"/><circle cx="12" cy="19.5" r="0.6"/></svg>
+        </button><span>Wi-Fi</span></div>
+        <div class="toggle"><button class="pb" aria-pressed="true" aria-label="Bluetooth" data-round="1">
+          <svg viewBox="0 0 24 24"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg>
+        </button><span>Bluetooth</span></div>
+        <div class="toggle"><button class="pb" aria-pressed="false" aria-label="Torch" data-round="1">
+          <svg viewBox="0 0 24 24"><path d="M8 3h8v4l-2 3v11h-4V10L8 7z"/><path d="M12 13v2"/></svg>
+        </button><span>Torch</span></div>
+        <div class="toggle"><button class="pb" aria-pressed="false" aria-label="Focus" data-round="1">
+          <svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        </button><span>Focus</span></div>
+      </div></div>
+    </div>
+
+    <div class="piece a-music" style="--h:300" data-seed="41">
+      <div class="sg"><div class="sg-c">
+        <div class="label">Now playing</div>
+        <div class="track">
+          <div class="art pb" data-round="0.7" style="cursor:default"></div>
+          <div><h3>Low Tide</h3><div class="small">The Shingle Collective</div></div>
+        </div>
+        <div class="progress pb" data-round="1" data-wobble="0.3"><div class="fill pb" data-round="1" data-wobble="0.3" id="prog-fill"></div></div>
+        <div class="times"><span id="t-now">1:12</span><span>3:47</span></div>
+        <div class="controls">
+          <button class="pb" aria-label="Previous track" data-round="1"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12l-10-6z"/></svg></button>
+          <button class="pb play" aria-label="Play" aria-pressed="false" data-round="1" id="play">
+            <svg viewBox="0 0 24 24" id="play-icon"><path d="M7 4.5v15l13-7.5z"/></svg>
+          </button>
+          <button class="pb" aria-label="Next track" data-round="1"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6v12l10-6z"/></svg></button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="piece a-slider" style="--h:75" data-seed="53">
+      <div class="sg"><div class="sg-c">
+        <div class="bright-row"><span class="label">Daylight</span><output id="bright-out">100%</output></div>
+        <div class="bright">
+          <div class="pb" data-round="1" data-wobble="0.5"></div>
+          <div class="fill pb" data-round="1" data-wobble="0.5" id="bright-fill"></div>
+          <input type="range" id="bright" min="40" max="130" value="100" aria-label="Daylight on the sea backdrop">
+        </div>
+      </div></div>
+    </div>
+
+    <div class="piece a-note" style="--h:20" data-seed="67">
+      <div class="sg"><div class="sg-c">
+        <div class="icon pb" data-round="0.8">B</div>
+        <div style="min-width:0">
+          <div class="note-top"><strong>Beachcomber</strong><span class="small">now</span></div>
+          <div class="small">Three new finds logged at the north groyne: two seafoam, one rare cobalt.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="piece a-dock" style="--h:210" data-seed="79">
+      <div class="sg"><div class="sg-c dock">
+        <div class="app"><button class="pb" data-h="200" data-round="0.75">T</button><span>Tides</span></div>
+        <div class="app"><button class="pb" data-h="150" data-round="0.75">S</button><span>Shore</span></div>
+        <div class="app"><button class="pb" data-h="60" data-round="0.75">N</button><span>Notes</span></div>
+        <div class="app"><button class="pb" data-h="280" data-round="0.75">C</button><span>Charts</span></div>
+      </div></div>
+    </div>
+  </main>
+
+  <aside class="panel" id="panel" aria-label="Parameters">
+    <div class="panel-head">
+      <div><a href="../">Playground</a><h1>Sea Glass</h1></div>
+      <button class="btn" id="toggle-panel" aria-expanded="true" aria-controls="panel-body">Hide</button>
+    </div>
+    <div class="panel-body" id="panel-body">
+      <p class="intro">Frosted, tumbled glass in place of liquid. Each panel is a pebble cut from the sea behind it; change the material and watch it respond.</p>
+      <div id="controls"></div>
+      <div class="btn-row">
+        <button class="btn" id="shuffle">Shuffle shapes</button>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
+
+  const DEFAULTS = {
+    glass: "mixed", frost: 18, tint: 0.32, sat: 140, grain: 0.16,
+    wobble: 0.45, round: 0.6,
+    rim: 0.6, edge: 3, shadow: 0.45,
+    palette: "coastal", pattern: "pebbles", drift: reduceMotion ? 0 : 0.35,
+  };
+  const P = { ...DEFAULTS };
+  let shuffle = 0;
+
+  const GLASS = [
+    { id: "mixed", name: "Mixed" },
+    { id: "seafoam", name: "Seafoam", h: 170, sw: "#86d7bb" },
+    { id: "cobalt", name: "Cobalt", h: 258, sw: "#427fd8" },
+    { id: "amber", name: "Amber", h: 70, sw: "#f3ae58" },
+    { id: "rose", name: "Rose", h: 15, sw: "#f09da3" },
+    { id: "clear", name: "Clear", sw: "#f5f5f5" },
+  ];
+  const PALETTES = {
+    coastal: { name: "Coastal",
+      light: { bg: "#ece4d4", c: ["#8fd3c4", "#2f9e8f", "#3e64a8", "#f2a477", "#e8c86a", "#d6694f", "#f7f1e6"] },
+      dark:  { bg: "#0d1b24", c: ["#1f6f68", "#2fae9c", "#3456a0", "#c7653f", "#b08f2f", "#7a2f3b", "#1d3340"] } },
+    tidepool: { name: "Tidepool",
+      light: { bg: "#e1ede8", c: ["#5fb49c", "#9ad1d4", "#1d6a96", "#7c5ba6", "#c9e4a6", "#2b4a5c", "#f4d58d"] },
+      dark:  { bg: "#0b191b", c: ["#2f7f6b", "#3a8a9a", "#1d4f86", "#5d3f8a", "#5f7f3a", "#183543", "#9a7a2a"] } },
+    sunset: { name: "Sunset",
+      light: { bg: "#f6e5da", c: ["#f28f6b", "#f6bd60", "#e05780", "#7d4e9e", "#f7d6c4", "#3d5a80", "#ffd23f"] },
+      dark:  { bg: "#190f1f", c: ["#c4573f", "#c9902f", "#a63a62", "#5a2f7a", "#7a4a5a", "#24365a", "#d6a82a"] } },
+    mono: { name: "Shingle",
+      light: { bg: "#e6e5e1", c: ["#2b2b2b", "#8a8a86", "#c9c9c4", "#ffffff", "#5c5c58", "#1f6f8b", "#a8a59c"] },
+      dark:  { bg: "#111213", c: ["#e8e8e8", "#5c5c5c", "#2e2e2e", "#9a9a9a", "#444444", "#2f8fb0", "#777570"] } },
+  };
+  const PATTERNS = [ { id: "pebbles", name: "Pebbles" }, { id: "blobs", name: "Blobs" }, { id: "waves", name: "Waves" } ];
+
+  const SLIDERS = {
+    frost:  { label: "Frost", min: 0, max: 40, step: 1, fmt: v => v + " px" },
+    tint:   { label: "Tint", min: 0, max: 0.85, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+    sat:    { label: "Saturation", min: 50, max: 260, step: 5, fmt: v => v + "%" },
+    grain:  { label: "Grain", min: 0, max: 0.5, step: 0.01, fmt: v => Math.round(v * 200) + "%" },
+    wobble: { label: "Wobble", min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+    round:  { label: "Roundness", min: 0.05, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+    rim:    { label: "Rim light", min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+    edge:   { label: "Edge depth", min: 0, max: 10, step: 0.5, fmt: v => v + " px" },
+    shadow: { label: "Shadow", min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+    drift:  { label: "Drift", min: 0, max: 1, step: 0.01, fmt: v => v === 0 ? "Still" : Math.round(v * 100) + "%" },
+  };
+  const GROUPS = [
+    { name: "Glass", items: ["chips:glass", "frost", "tint", "sat", "grain"] },
+    { name: "Shape", items: ["wobble", "round"] },
+    { name: "Light", items: ["rim", "edge", "shadow"] },
+    { name: "Backdrop", items: ["chips:palette", "chips:pattern", "drift"] },
+  ];
+
+  /* ---------- Pebble geometry ---------- */
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // A rounded rectangle with uneven corners, pushed in and out along its normal
+  // by a sum of low-frequency sines, then smoothed into cubic beziers. The shape
+  // is inset by the wobble amplitude so it never leaves the w x h box (the
+  // backdrop blur only covers the element's box).
+  function pebblePath(w, h, { round = 0.6, wobble = 0.4, seed = 1, pad = 1 } = {}) {
+    const R = rng(seed);
+    const m = Math.min(w, h);
+    const amp = Math.min(wobble * m * 0.06, 16);
+    const inset = amp + pad;
+    const x0 = inset, y0 = inset, x1 = w - inset, y1 = h - inset;
+    const iw = Math.max(1, x1 - x0), ih = Math.max(1, y1 - y0);
+    const half = Math.min(iw, ih) / 2;
+    const base = Math.max(1.5, round * half);
+    const r = [0, 1, 2, 3].map(() => Math.min(half, Math.max(1, base * (1 + wobble * 0.55 * (R() * 2 - 1)))));
+
+    const segs = [];
+    const line = (ax, ay, bx, by, nx, ny) => segs.push({ len: Math.hypot(bx - ax, by - ay),
+      at: u => [ax + (bx - ax) * u, ay + (by - ay) * u, nx, ny] });
+    const arc = (cx, cy, rr, a0) => segs.push({ len: rr * Math.PI / 2,
+      at: u => { const a = a0 + u * Math.PI / 2, c = Math.cos(a), s = Math.sin(a); return [cx + rr * c, cy + rr * s, c, s]; } });
+    line(x0 + r[0], y0, x1 - r[1], y0, 0, -1);
+    arc(x1 - r[1], y0 + r[1], r[1], -Math.PI / 2);
+    line(x1, y0 + r[1], x1, y1 - r[2], 1, 0);
+    arc(x1 - r[2], y1 - r[2], r[2], 0);
+    line(x1 - r[2], y1, x0 + r[3], y1, 0, 1);
+    arc(x0 + r[3], y1 - r[3], r[3], Math.PI / 2);
+    line(x0, y1 - r[3], x0, y0 + r[0], -1, 0);
+    arc(x0 + r[0], y0 + r[0], r[0], Math.PI);
+    const L = segs.reduce((s, g) => s + g.len, 0);
+
+    const waves = [];
+    let norm = 0;
+    for (let k = 1; k <= 5; k++) { const a = (0.35 + R()) / k; waves.push([k, a, R() * Math.PI * 2]); norm += a; }
+    const noise = t => waves.reduce((s, [k, a, ph]) => s + a * Math.sin(2 * Math.PI * k * t + ph), 0) / norm;
+
+    const N = Math.max(28, Math.min(200, Math.round(L / 7)));
+    const pts = [];
+    let si = 0, acc = 0;
+    for (let i = 0; i < N; i++) {
+      const s = (i / N) * L;
+      while (si < segs.length - 1 && s > acc + segs[si].len) { acc += segs[si].len; si++; }
+      const g = segs[si];
+      const [x, y, nx, ny] = g.at(g.len ? Math.min(1, (s - acc) / g.len) : 0);
+      const d = amp * noise(i / N);
+      pts.push([x + nx * d, y + ny * d]);
+    }
+    const f = v => Math.round(v * 10) / 10;
+    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let i = 0; i < N; i++) {
+      const p0 = pts[(i - 1 + N) % N], p1 = pts[i], p2 = pts[(i + 1) % N], p3 = pts[(i + 2) % N];
+      d += `C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+    }
+    return d + "Z";
+  }
+
+  /* ---------- Shaping elements ---------- */
+  const NS = "http://www.w3.org/2000/svg";
+  const shaped = new Map();   // element -> reshape()
+  const ro = new ResizeObserver(entries => entries.forEach(e => { const fn = shaped.get(e.target); if (fn) fn(); }));
+
+  function seedOf(el, i) { return (Number(el.closest("[data-seed]")?.dataset.seed) || 1) * 97 + i * 13 + shuffle * 7919; }
+
+  function setupGlass(piece) {
+    const sg = piece.querySelector(".sg");
+    const sh = document.createElement("div");
+    sh.className = "sg-shadow"; sh.innerHTML = "<div></div>";
+    piece.prepend(sh);
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "sg-rim"); svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = '<path class="rim-edge" filter="url(#sg-soft)"/><path class="rim-lo"/><path class="rim-hi"/>';
+    sg.prepend(svg);
+    const [edge, lo, hi] = svg.children;
+    const reshape = () => {
+      const w = sg.offsetWidth, h = sg.offsetHeight;
+      if (!w || !h) return;
+      const d = pebblePath(w, h, { round: P.round, wobble: P.wobble, seed: seedOf(piece, 0) });
+      // Keep content clear of the wobble and of the rounded corners: text at
+      // inset p from both edges stays inside a corner of radius r once p >= 0.3r.
+      const m = Math.min(w, h), amp = Math.min(P.wobble * m * 0.06, 16);
+      const r = P.round * (m - 2 * amp) / 2 * (1 + P.wobble * 0.55);
+      const pad = Math.round(Math.max(14 + amp, amp + 0.3 * r + 6));
+      if (Math.abs(pad - (piece._pad || 0)) > 1) { piece._pad = pad; sg.style.padding = pad + "px"; }
+      const clip = `path('${d}')`;
+      sg.style.clipPath = clip; sg.style.webkitClipPath = clip;
+      sh.firstChild.style.clipPath = clip; sh.firstChild.style.webkitClipPath = clip;
+      svg.setAttribute("width", w); svg.setAttribute("height", h); svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      // Strokes are centred on the outline; the outer half is clipped away, so
+      // the visible band is half the stroke width.
+      edge.setAttribute("d", d); edge.setAttribute("stroke-width", P.edge * 2);
+      edge.style.display = P.edge > 0 ? "" : "none";
+      lo.setAttribute("d", d); lo.setAttribute("stroke-width", Math.max(2, P.edge * 1.4));
+      hi.setAttribute("d", d); hi.setAttribute("stroke-width", 2 + P.edge * 0.8);
+    };
+    shaped.set(sg, reshape); ro.observe(sg);
+  }
+
+  function setupPebble(el, i) {
+    const reshape = () => {
+      const w = el.offsetWidth, h = el.offsetHeight;
+      if (!w || !h) return;
+      const round = el.dataset.round ? Number(el.dataset.round) : P.round;
+      const wob = P.wobble * (el.dataset.wobble ? Number(el.dataset.wobble) : 0.8);
+      const clip = `path('${pebblePath(w, h, { round, wobble: wob, seed: seedOf(el, i + 1), pad: 0.5 })}')`;
+      el.style.clipPath = clip; el.style.webkitClipPath = clip;
+    };
+    shaped.set(el, reshape); ro.observe(el);
+  }
+
+  document.querySelectorAll(".piece").forEach(setupGlass);
+  document.querySelectorAll(".pb").forEach(setupPebble);
+  const reshapeAll = () => shaped.forEach(fn => fn());
+
+  /* ---------- Sea backdrop ---------- */
+  const sea = document.getElementById("sea");
+  const ctx = sea.getContext("2d");
+  let SW = 0, SH = 0, items = [], simT = 0, lastFrame = 0, raf = 0;
+
+  function palette() { return PALETTES[P.palette][darkMQ.matches ? "dark" : "light"]; }
+
+  function buildSea() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    SW = sea.clientWidth; SH = sea.clientHeight;
+    sea.width = Math.round(SW * dpr); sea.height = Math.round(SH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const R = rng(4242 + shuffle * 31 + P.pattern.length);
+    const cols = palette().c;
+    items = [];
+    if (P.pattern === "pebbles") {
+      const cell = Math.max(52, Math.sqrt(SW * SH / 160));
+      for (let y = -cell / 2; y < SH + cell; y += cell * 0.82) {
+        for (let x = -cell / 2; x < SW + cell; x += cell) {
+          const s = cell * (0.45 + R() * 0.55), asp = 0.55 + R() * 0.45;
+          const w = s, h = s * asp;
+          items.push({ x: x + (R() - 0.5) * cell * 0.6, y: y + (R() - 0.5) * cell * 0.6, w, h,
+            path: new Path2D(pebblePath(w, h, { round: 0.85, wobble: 0.9, seed: Math.floor(R() * 1e9), pad: 0 })),
+            col: cols[Math.floor(R() * cols.length)], rot: R() * Math.PI, spin: (R() - 0.5) * 0.06,
+            orb: 6 + R() * 14, sp: 0.15 + R() * 0.25, ph: R() * Math.PI * 2 });
+        }
+      }
+    } else if (P.pattern === "blobs") {
+      const big = Math.max(SW, SH);
+      for (let i = 0; i < 11; i++) {
+        const s = big * (0.18 + R() * 0.32), asp = 0.6 + R() * 0.4;
+        items.push({ x: R() * SW, y: R() * SH, w: s, h: s * asp,
+          path: new Path2D(pebblePath(s, s * asp, { round: 1, wobble: 1, seed: Math.floor(R() * 1e9), pad: 0 })),
+          col: cols[i % cols.length], rot: R() * Math.PI, spin: (R() - 0.5) * 0.05,
+          orb: big * (0.04 + R() * 0.08), sp: 0.05 + R() * 0.08, ph: R() * Math.PI * 2 });
+      }
+    } else {
+      const n = 9;
+      for (let i = 0; i < n; i++) {
+        items.push({ y: (i + 0.6) * SH / n, amp: 14 + R() * 30, k: (Math.PI * 2) / (260 + R() * 420),
+          sp: 0.4 + R() * 0.5, ph: R() * Math.PI * 2, col: cols[i % cols.length] });
+      }
+    }
+  }
+
+  function drawSea() {
+    const pal = palette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, SW, SH);
+    const t = simT;
+    if (P.pattern === "waves") {
+      items.forEach(b => {
+        ctx.fillStyle = b.col; ctx.beginPath(); ctx.moveTo(0, SH);
+        for (let x = 0; x <= SW + 12; x += 12) {
+          const y = b.y + Math.sin(x * b.k + t * b.sp + b.ph) * b.amp + Math.sin(x * b.k * 2.3 - t * b.sp * 0.7) * b.amp * 0.3;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(SW, SH); ctx.closePath(); ctx.fill();
+      });
+      return;
+    }
+    ctx.globalAlpha = P.pattern === "blobs" ? 0.88 : 1;
+    items.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x + Math.cos(t * p.sp + p.ph) * p.orb, p.y + Math.sin(t * p.sp * 1.3 + p.ph) * p.orb);
+      ctx.rotate(p.rot + t * p.spin);
+      ctx.translate(-p.w / 2, -p.h / 2);
+      ctx.fillStyle = p.col; ctx.fill(p.path);
+      ctx.restore();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function frame(now) {
+    raf = 0;
+    const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0;
+    lastFrame = now;
+    simT += dt * P.drift * 2;
+    drawSea();
+    if (P.drift > 0 && !document.hidden) raf = requestAnimationFrame(frame);
+  }
+  function kick() { if (!raf) { lastFrame = 0; raf = requestAnimationFrame(frame); } }
+
+  function applyBody() {
+    const bg = palette().bg;
+    document.documentElement.style.background = bg;
+    document.body.style.background = bg;
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", bg);
+  }
+
+  /* ---------- Parameters -> CSS ---------- */
+  const root = document.documentElement.style;
+  function applyVars() {
+    root.setProperty("--frost", P.frost + "px");
+    root.setProperty("--sat", P.sat + "%");
+    root.setProperty("--tint", P.tint);
+    root.setProperty("--grain", P.grain);
+    root.setProperty("--rim", P.rim);
+    root.setProperty("--shadow", P.shadow);
+    root.setProperty("--sb", (6 + P.shadow * 18) + "px");
+    root.setProperty("--sy", (4 + P.shadow * 14) + "px");
+    document.getElementById("sg-soft-blur").setAttribute("stdDeviation", Math.max(0.5, P.edge * 0.5));
+    paintColours();
+  }
+
+  /* ---------- Colour: oklch -> sRGB with gamut mapping ---------- */
+  function oklabToSrgb(L, C, h) {
+    const a = C * Math.cos(h * Math.PI / 180), b = C * Math.sin(h * Math.PI / 180);
+    const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+    return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+           -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+           -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+  }
+  const inGamut = c => c.every(v => v >= 0 && v <= 1);
+  // Keep lightness and hue; reduce chroma until the colour fits in sRGB.
+  function rgbTriplet(L, C, h) {
+    let lin = oklabToSrgb(L, C, h);
+    if (!inGamut(lin)) {
+      let lo = 0, hi = C;
+      for (let i = 0; i < 18; i++) { const mid = (lo + hi) / 2; if (inGamut(oklabToSrgb(L, mid, h))) lo = mid; else hi = mid; }
+      lin = oklabToSrgb(L, lo, h);
+    }
+    return lin.map(v => {
+      v = Math.min(1, Math.max(0, v));
+      return Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055));
+    }).join(" ");
+  }
+  const MATERIAL = {
+    light: { glass: [0.95, 0.06], edge: [0.74, 0.14], ink: [0.27, 0.06], pb: [0.99, 0.03], active: [0.62, 0.14],
+             shadow: [0.32, 0.09], art1: [0.85, 0.1, 40], art2: [0.55, 0.13] },
+    dark:  { glass: [0.4, 0.08], edge: [0.78, 0.13], ink: [0.97, 0.02], pb: [0.7, 0.05], active: [0.8, 0.13],
+             shadow: [0.08, 0.03], art1: [0.85, 0.1, 40], art2: [0.55, 0.13] },
+  };
+  function paintColours() {
+    const mat = MATERIAL[darkMQ.matches ? "dark" : "light"];
+    const g = GLASS.find(x => x.id === P.glass);
+    const k = P.glass === "clear" ? 0 : 1;
+    document.querySelectorAll(".piece").forEach(p => {
+      if (!p.dataset.h0) p.dataset.h0 = p.style.getPropertyValue("--h");
+      const h = g.h ?? Number(p.dataset.h0);
+      for (const [name, [L, C, dh = 0]] of Object.entries(mat)) p.style.setProperty("--c-" + name, rgbTriplet(L, C * k, h + dh));
+    });
+    // App icons keep their own hues whatever the glass colour.
+    document.querySelectorAll(".app .pb").forEach(el => el.style.setProperty("--c-app", rgbTriplet(mat.active[0], mat.active[1], Number(el.dataset.h))));
+  }
+
+  /* ---------- Controls ---------- */
+  const controls = document.getElementById("controls");
+  const inputs = {}, chipSets = {};
+
+  function setPct(inp) {
+    const pct = (inp.value - inp.min) / (inp.max - inp.min) * 100;
+    inp.style.setProperty("--pct", pct + "%");
+  }
+
+  function onChange(key) {
+    applyVars();
+    if (key === "wobble" || key === "round" || key === "edge") reshapeAll();
+    if (key === "palette" || key === "pattern") { buildSea(); applyBody(); drawSea(); }
+    if (key === "drift") { if (P.drift > 0) kick(); }
+    if (P.drift === 0) drawSea();
+  }
+
+  GROUPS.forEach(g => {
+    const sec = document.createElement("section");
+    sec.className = "group";
+    sec.innerHTML = `<h2>${g.name}</h2>`;
+    g.items.forEach(item => {
+      if (item.startsWith("chips:")) {
+        const key = item.slice(6);
+        const opts = key === "glass" ? GLASS : key === "pattern" ? PATTERNS
+          : Object.entries(PALETTES).map(([id, v]) => ({ id, name: v.name, sw: v.light.c[1] }));
+        const wrap = document.createElement("div");
+        wrap.className = "chips"; wrap.setAttribute("role", "group");
+        wrap.setAttribute("aria-label", key === "glass" ? "Glass colour" : key === "pattern" ? "Backdrop pattern" : "Backdrop palette");
+        opts.forEach(o => {
+          const b = document.createElement("button");
+          b.className = "chip"; b.type = "button"; b.dataset.id = o.id;
+          b.innerHTML = (o.sw ? `<span class="sw" style="background:${o.sw}"></span>` : "") + o.name;
+          b.addEventListener("click", () => { P[key] = o.id; syncControls(); onChange(key); });
+          wrap.appendChild(b);
+        });
+        chipSets[key] = wrap;
+        sec.appendChild(wrap);
+      } else {
+        const s = SLIDERS[item];
+        const row = document.createElement("div");
+        row.className = "ctl";
+        row.innerHTML = `<label for="p-${item}">${s.label}</label><output id="o-${item}" for="p-${item}"></output>
+          <input type="range" id="p-${item}" min="${s.min}" max="${s.max}" step="${s.step}">`;
+        const inp = row.querySelector("input"), out = row.querySelector("output");
+        inp.addEventListener("input", () => {
+          P[item] = Number(inp.value); out.textContent = s.fmt(P[item]); setPct(inp); onChange(item);
+        });
+        inputs[item] = { inp, out, s };
+        sec.appendChild(row);
+      }
+    });
+    controls.appendChild(sec);
+  });
+
+  function syncControls() {
+    Object.entries(inputs).forEach(([k, { inp, out, s }]) => { inp.value = P[k]; out.textContent = s.fmt(P[k]); setPct(inp); });
+    Object.entries(chipSets).forEach(([k, wrap]) => wrap.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id === P[k]))));
+  }
+
+  document.getElementById("shuffle").addEventListener("click", () => {
+    shuffle++; reshapeAll(); buildSea(); drawSea();
+  });
+  document.getElementById("reset").addEventListener("click", () => {
+    Object.assign(P, DEFAULTS); shuffle = 0;
+    syncControls(); applyVars(); reshapeAll(); buildSea(); applyBody(); drawSea(); if (P.drift > 0) kick();
+  });
+
+  const togglePanel = document.getElementById("toggle-panel");
+  togglePanel.addEventListener("click", () => {
+    const collapsed = document.body.classList.toggle("sheet-collapsed");
+    togglePanel.textContent = collapsed ? "Show" : "Hide";
+    togglePanel.setAttribute("aria-expanded", String(!collapsed));
+  });
+
+  /* ---------- Demo widgets ---------- */
+  document.querySelectorAll(".toggle .pb").forEach(b => b.addEventListener("click", () =>
+    b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"))));
+
+  function tick() {
+    const d = new Date();
+    document.getElementById("time").textContent = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    document.getElementById("date").textContent = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  }
+  tick(); setInterval(tick, 10000);
+
+  const LEN = 227;
+  let pos = 72, playing = false;
+  const play = document.getElementById("play"), playIcon = document.getElementById("play-icon");
+  const progFill = document.getElementById("prog-fill"), tNow = document.getElementById("t-now");
+  function renderProgress() {
+    progFill.style.width = Math.max(4, pos / LEN * 100) + "%";
+    tNow.textContent = Math.floor(pos / 60) + ":" + String(Math.floor(pos % 60)).padStart(2, "0");
+  }
+  play.addEventListener("click", () => {
+    playing = !playing;
+    play.setAttribute("aria-pressed", String(playing));
+    play.setAttribute("aria-label", playing ? "Pause" : "Play");
+    playIcon.innerHTML = playing ? '<path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+  });
+  setInterval(() => { if (playing) { pos = (pos + 1) % LEN; renderProgress(); } }, 1000);
+  renderProgress();
+
+  const bright = document.getElementById("bright"), brightFill = document.getElementById("bright-fill"), brightOut = document.getElementById("bright-out");
+  function renderBright() {
+    const v = Number(bright.value);
+    brightFill.style.width = Math.max(10, (v - 40) / 90 * 100) + "%";
+    brightOut.textContent = v + "%";
+    sea.style.filter = v === 100 ? "" : `brightness(${v / 100})`;
+  }
+  bright.addEventListener("input", renderBright);
+  renderBright();
+
+  /* ---------- Start ---------- */
+  syncControls(); applyVars(); buildSea(); applyBody(); drawSea();
+  if (P.drift > 0) kick();
+
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { buildSea(); drawSea(); }, 150);
+  });
+  darkMQ.addEventListener("change", () => { paintColours(); buildSea(); applyBody(); drawSea(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && P.drift > 0) kick(); });
+})();
+</script>
+</body>
+</html>
