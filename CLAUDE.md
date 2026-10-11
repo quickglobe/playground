@@ -115,6 +115,11 @@ Browsers cache favicons aggressively; a hard refresh (or re-adding the home-scre
 ## Dark mode
 
 - Follow OS preference only; never add a manual dark/light toggle — manual toggles were added to the landing page and Game of Life and then removed both times. The added complexity (toggle button, `localStorage`, `data-theme` attribute switching) is not worth it when `prefers-color-scheme` already respects the user's system setting.
+- Never read `matchMedia(...).matches` in an animation loop. Chromium refreshes the
+  query's cached value on every read, so a read that lands between the OS switching
+  scheme and the browser's change check swallows the `change` event entirely, and
+  the page stays in the old scheme. Read `.matches` once at startup, cache it, and
+  update the cache only from the `change` listener (`isDark = e.matches`).
 - Dark mode FOUC fix — if a project reads a stored theme preference at startup, the reading script must be an inline `<script>` in `<head>`, not at the bottom of `<body>`. A deferred script runs after the first paint, causing a visible flash of the wrong theme for returning users.
 
 ## Landing page preview cards

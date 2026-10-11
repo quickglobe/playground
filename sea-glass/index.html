@@ -64,7 +64,12 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: #ece4d4; }
+  /* Safari 26 tints the status bar and toolbar from <body> and from any
+     full-width fixed element touching that edge - here the sea canvas, whose
+     pixels are not sampled, only its background-color. All three carry the
+     palette's base colour (kept in step by JS) so both bars match the sea. */
+  html, body, #sea { background-color: #ece4d4; }
+  @media (prefers-color-scheme: dark) { html, body, #sea { background-color: #0d1b24; } }
   body {
     font-family: var(--system);
     color: var(--panel-ink); min-height: 100vh; -webkit-font-smoothing: antialiased;
@@ -454,6 +459,10 @@
 (() => {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
+  // Read the scheme once and then only from the change event. Reading
+  // darkMQ.matches every frame (the drift loop) refreshes Chromium's cached
+  // value before it checks for a change, so the change event never fires.
+  let isDark = darkMQ.matches;
 
   /* Presets set the material, shape, light, motion and type; they leave the
      backdrop alone. */
@@ -808,7 +817,7 @@
   const harmonise = (h, seed, t) => { const d = ((seed - h + 540) % 360) - 180; return h + d * t; };
 
   function paintColours() {
-    const dark = darkMQ.matches;
+    const dark = isDark;
     const mat = MATERIAL[dark ? "dark" : "light"];
     const g = GLASS.find(x => x.id === P.glass);
     const dyn = P.glass === "dynamic";
@@ -843,7 +852,7 @@
   let SW = 0, SH = 0, items = [], simT = 0;
 
   function palette() {
-    const dark = darkMQ.matches;
+    const dark = isDark;
     if (P.palette !== "dynamic") return PALETTES[P.palette][dark ? "dark" : "light"];
     // Tonal palette from the seed, with a tertiary hue 60 degrees round.
     const s = P.seed, t = (P.seed + 60) % 360, n = (P.seed + 320) % 360;
@@ -919,10 +928,15 @@
   }
   const seaTick = dt => { simT += dt * P.drift * 2; drawSea(); return P.drift > 0; };
 
+  // The bars can only take a flat colour, so they get the sea's base colour,
+  // dimmed with the Daylight slider so they match the filtered canvas.
   function applyBody() {
-    const bg = palette().bg;
-    document.documentElement.style.background = bg;
-    document.body.style.background = bg;
+    const k = Number(document.getElementById("bright").value) / 100;
+    const bg = "#" + [1, 3, 5].map(i => Math.min(255, Math.round(parseInt(palette().bg.slice(i, i + 2), 16) * k))
+      .toString(16).padStart(2, "0")).join("");
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+    sea.style.backgroundColor = bg;
     document.querySelector('meta[name="theme-color"]').setAttribute("content", bg);
   }
 
@@ -1142,6 +1156,7 @@
     bStop.style.display = iw > 24 ? "" : "none";
     brightOut.textContent = v + "%";
     sea.style.filter = v === 100 ? "" : `brightness(${v / 100})`;
+    applyBody();
   }
   bright.addEventListener("input", renderBright);
   new ResizeObserver(renderBright).observe(brightWrap);
@@ -1167,7 +1182,7 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => { buildSea(); drawSea(); }, 150);
   });
-  darkMQ.addEventListener("change", () => { paintColours(); buildSea(); applyBody(); drawSea(); });
+  darkMQ.addEventListener("change", e => { isDark = e.matches; paintColours(); buildSea(); applyBody(); drawSea(); });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && tickers.size && !rafId) { lastT = 0; rafId = requestAnimationFrame(loop); }
   });
